@@ -35,6 +35,7 @@ function initWhatsApp() {
       puppeteer: {
         headless: true,
         userAgent: userAgent,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',

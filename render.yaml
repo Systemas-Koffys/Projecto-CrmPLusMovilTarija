@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: crm-plusmovil-backend
+    env: docker
+    plan: free
+    rootDir: backend
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: SUPABASE_URL
+        sync: false # Render will ask you for this value on setup screen
+      - key: SUPABASE_SERVICE_KEY
+        sync: false # Render will ask you for this value on setup screen
+      - key: FIREBASE_PROJECT_ID
+        value: crmplusmovil
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: true
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/google-chrome-stable
