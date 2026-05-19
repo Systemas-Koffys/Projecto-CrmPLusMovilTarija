@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:20-slim
 
 # Install latest chrome dev package and necessary fonts to support Puppeteer headless execution
 RUN apt-get update \
