@@ -1,0 +1,65 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# .gitignore — CRM RADIO MÓVILES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# CREDENCIALES Y VARIABLES DE ENTORNO
+.env
+.env.local
+.env.*.local
+*.key
+serviceAccountKey.json
+firebase-credentials.json
+
+# NODE MODULES
+node_modules/
+package-lock.json
+yarn.lock
+
+# BUILD Y DIST
+dist/
+build/
+.next/
+
+# IDE Y EDITORES
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# LOGS
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# DOCKER
+.dockerignore
+docker-compose.override.yml
+
+# TEMPORALES
+tmp/
+temp/
+*.tmp
+
+# DEPENDENCIAS OPCIONALES
+.cache/
+.parcel-cache
+
+# OS
+.Thumbs.db
+.AppleDouble
+.LSOverride
+
+# ARCHIVOS SENSIBLES
+*.pem
+*.p12
+*.jks
+
+# BASE DE DATOS LOCAL
+*.db
+*.sqlite
+*.sqlite3

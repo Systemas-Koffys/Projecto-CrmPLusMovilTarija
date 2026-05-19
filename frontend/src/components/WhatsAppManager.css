@@ -1,0 +1,275 @@
+.whatsapp-manager {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.whatsapp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.whatsapp-header__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.whatsapp-header__icon {
+  font-size: 28px;
+}
+
+.whatsapp-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.whatsapp-header .subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+}
+
+/* Error Banner */
+.whatsapp-error-banner {
+  background: rgba(ef, 68, 68, 0.1);
+  border: 1px solid rgba(ef, 68, 68, 0.2);
+  color: #f87171;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+/* Lines Grid */
+.whatsapp-lines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.whatsapp-line-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.whatsapp-line-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--text-muted);
+}
+
+/* Color indicator for statuses */
+.whatsapp-line-card.connected::before {
+  background: #25d366;
+}
+
+.whatsapp-line-card.qr_ready::before {
+  background: var(--accent-color);
+}
+
+.whatsapp-line-card.connecting::before {
+  background: var(--text-muted);
+}
+
+.whatsapp-line-card.disconnected::before {
+  background: #ef4444;
+}
+
+.whatsapp-line-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.whatsapp-line-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-body);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-dot.connected {
+  background: #25d366;
+  box-shadow: 0 0 8px #25d366;
+}
+
+.status-dot.qr_ready {
+  background: var(--accent-color);
+  box-shadow: 0 0 8px var(--accent-color);
+  animation: pulse-qr 1.5s infinite;
+}
+
+.status-dot.connecting {
+  background: var(--text-primary);
+  animation: blink-connecting 1s infinite alternate;
+}
+
+.status-dot.disconnected {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.status-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+
+.whatsapp-line-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 4px 0 0 0;
+}
+
+.whatsapp-line-key {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Connected Actions */
+.whatsapp-connected-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px;
+  background: rgba(37, 211, 102, 0.05);
+  border: 1px solid rgba(37, 211, 102, 0.1);
+  border-radius: 8px;
+  gap: 8px;
+}
+
+.whatsapp-connected-success .success-icon {
+  font-size: 24px;
+}
+
+.whatsapp-connected-success p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Connecting Loader */
+.whatsapp-connecting-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  gap: 12px;
+}
+
+.whatsapp-connecting-loader p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* QR Code Display */
+.whatsapp-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-instruction {
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0;
+}
+
+.qr-wrapper {
+  padding: 12px;
+  background: #fff; /* QR needs white background for scanners */
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 280px;
+  height: 280px;
+}
+
+.qr-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qr-tip {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Loading/Refreshing states */
+.whatsapp-manager-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  gap: 16px;
+  text-align: center;
+}
+
+.whatsapp-manager-loading p {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.btn--icon.refreshing {
+  animation: rotate-refresh 1s linear infinite;
+}
+
+/* Keyframes */
+@keyframes pulse-qr {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes blink-connecting {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
+@keyframes rotate-refresh {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

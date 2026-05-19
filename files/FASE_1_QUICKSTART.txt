@@ -1,0 +1,455 @@
+═══════════════════════════════════════════════════════════════════════════════
+  CRM RADIO MÓVILES — FASE 1: BASE Y AUTENTICACIÓN
+  QUICKSTART GUIDE
+═══════════════════════════════════════════════════════════════════════════════
+
+OBJETIVO DE FASE 1
+─────────────────
+✓ Proyecto corriendo en Docker
+✓ Base de datos Supabase conectada
+✓ Login con Firebase Auth
+✓ 3 roles funcionando (Operadora, Contadora, Admin)
+✓ Panel de bienvenida según rol
+
+═══════════════════════════════════════════════════════════════════════════════
+1. CONFIGURACIÓN PREVIA
+═══════════════════════════════════════════════════════════════════════════════
+
+REQUISITOS:
+□ Docker Desktop instalado
+□ Node.js 18+ instalado
+□ Git configurado
+□ Cuenta en Supabase (supabase.com) — GRATUITO
+□ Proyecto en Firebase Console (firebase.google.com)
+
+═══════════════════════════════════════════════════════════════════════════════
+2. CREAR ESTRUCTURA DEL PROYECTO
+═══════════════════════════════════════════════════════════════════════════════
+
+$ mkdir crm-radio-moviles
+$ cd crm-radio-moviles
+$ git init
+
+Crear carpetas:
+  crm-radio-moviles/
+  ├── backend/
+  ├── frontend/
+  ├── docker-compose.yml
+  ├── .env.example
+  └── README.md
+
+═══════════════════════════════════════════════════════════════════════════════
+3. CONFIGURAR SUPABASE
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Crear proyecto en supabase.com
+  1. Ir a https://supabase.com
+  2. Click "New Project"
+  3. Ingresar nombre y contraseña
+  4. Esperar 1-2 minutos
+
+PASO 2: Obtener credenciales
+  1. En el dashboard, ir a Settings → API
+  2. Copiar: Project URL y anon public key
+  3. Guardar en .env backend
+
+PASO 3: Crear tablas (SQL)
+  En el dashboard de Supabase, ir a SQL Editor y ejecutar:
+
+    -- Tabla de usuarios con roles
+    CREATE TABLE users_roles (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      role TEXT CHECK (role IN ('operadora', 'contadora', 'admin')),
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Tabla de operadoras (para datos de turnos futuros)
+    CREATE TABLE operadoras (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID REFERENCES users_roles(id),
+      nombre TEXT NOT NULL,
+      fecha_ingreso TIMESTAMP DEFAULT NOW()
+    );
+
+PASO 4: Insertar usuarios de prueba
+
+    INSERT INTO users_roles (email, role) VALUES 
+      ('operadora@test.com', 'operadora'),
+      ('contadora@test.com', 'contadora'),
+      ('admin@test.com', 'admin');
+
+═══════════════════════════════════════════════════════════════════════════════
+4. CONFIGURAR FIREBASE
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Crear proyecto en Firebase Console
+  1. Ir a https://firebase.google.com
+  2. Click "Go to console"
+  3. "Create a new project" → Ingresar nombre
+  4. Desactivar Google Analytics (por ahora)
+
+PASO 2: Habilitar Email/Password authentication
+  1. En el proyecto, ir a Build → Authentication
+  2. Click "Get started" → Provider: Email/Password
+  3. Activar "Email/Password"
+  4. Guardar
+
+PASO 3: Crear usuarios de prueba
+  En Firebase Console → Authentication → Users:
+  
+    Email: operadora@test.com
+    Contraseña: Test123!
+    
+    Email: contadora@test.com
+    Contraseña: Test123!
+    
+    Email: admin@test.com
+    Contraseña: Test123!
+
+PASO 4: Obtener config de Firebase
+  1. En Settings del proyecto → General
+  2. En "Your apps" → Web app
+  3. Copiar config de Firebase (apiKey, authDomain, projectId, etc.)
+  4. Guardar en .env frontend
+
+PASO 5: Descargar Service Account (para backend)
+  1. Settings → Service Accounts
+  2. Click "Generate new private key"
+  3. Se descarga un JSON
+  4. Guardar en backend/config/serviceAccountKey.json
+  5. Nunca commitear este archivo a git
+
+═══════════════════════════════════════════════════════════════════════════════
+5. CONFIGURAR BACKEND
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Crear estructura
+
+$ cd backend
+$ npm init -y
+$ npm install express cors dotenv @supabase/supabase-js firebase-admin
+
+Estructura:
+  backend/
+  ├── src/
+  │   ├── config/
+  │   │   ├── firebase.js
+  │   │   └── supabase.js
+  │   ├── routes/
+  │   │   └── auth.js
+  │   ├── middleware/
+  │   │   └── verifyToken.js
+  │   └── index.js
+  ├── .env
+  ├── package.json
+  ├── Dockerfile
+  └── .dockerignore
+
+PASO 2: Crear backend/.env
+
+  PORT=3000
+  NODE_ENV=development
+  
+  SUPABASE_URL=https://xxxxx.supabase.co
+  SUPABASE_ANON_KEY=xxxxx
+  SUPABASE_SERVICE_KEY=xxxxx
+  
+  CORS_ORIGIN=http://localhost:5173
+
+PASO 3: Crear Dockerfile para backend
+
+  FROM node:18-alpine
+  WORKDIR /app
+  COPY package.json .
+  RUN npm install
+  COPY . .
+  EXPOSE 3000
+  CMD ["node", "src/index.js"]
+
+═══════════════════════════════════════════════════════════════════════════════
+6. CONFIGURAR FRONTEND
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Crear proyecto Vite
+
+$ npm create vite@latest frontend -- --template react
+$ cd frontend
+$ npm install
+$ npm install firebase react-router-dom
+
+PASO 2: Crear frontend/.env
+
+  VITE_API_URL=http://localhost:3000
+  
+  VITE_FIREBASE_API_KEY=xxxxx
+  VITE_FIREBASE_AUTH_DOMAIN=xxxxx.firebaseapp.com
+  VITE_FIREBASE_PROJECT_ID=xxxxx
+  VITE_FIREBASE_STORAGE_BUCKET=xxxxx.appspot.com
+  VITE_FIREBASE_MESSAGING_SENDER_ID=xxxxx
+  VITE_FIREBASE_APP_ID=xxxxx
+
+PASO 3: Crear Dockerfile para frontend
+
+  FROM node:18-alpine AS build
+  WORKDIR /app
+  COPY package.json .
+  RUN npm install
+  COPY . .
+  RUN npm run build
+  
+  FROM nginx:alpine
+  COPY --from=build /app/dist /usr/share/nginx/html
+  EXPOSE 80
+
+═══════════════════════════════════════════════════════════════════════════════
+7. CREAR DOCKER COMPOSE
+═══════════════════════════════════════════════════════════════════════════════
+
+En la raíz, crear docker-compose.yml:
+
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - CORS_ORIGIN=http://localhost:5173
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - crm-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - '5173:5173'
+    environment:
+      - VITE_API_URL=http://localhost:3000
+      - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+      - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+      - VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+    volumes:
+      - ./frontend/src:/app/src
+    networks:
+      - crm-network
+    depends_on:
+      - backend
+
+networks:
+  crm-network:
+
+═══════════════════════════════════════════════════════════════════════════════
+8. CÓDIGO BÁSICO DEL BACKEND
+═══════════════════════════════════════════════════════════════════════════════
+
+backend/src/index.js:
+
+  const express = require('express');
+  const cors = require('cors');
+  require('dotenv').config();
+  const { createClient } = require('@supabase/supabase-js');
+  
+  const app = express();
+  
+  app.use(cors({ origin: process.env.CORS_ORIGIN }));
+  app.use(express.json());
+  
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
+  );
+  
+  // Endpoint para verificar rol
+  app.post('/api/auth/verify', async (req, res) => {
+    const { email } = req.body;
+    try {
+      const { data, error } = await supabase
+        .from('users_roles')
+        .select('role')
+        .eq('email', email)
+        .single();
+      
+      if (error) {
+        return res.status(404).json({ role: 'guest' });
+      }
+      
+      res.json({ role: data.role });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'API running' });
+  });
+  
+  app.listen(process.env.PORT || 3000, () => {
+    console.log('Backend running on port', process.env.PORT || 3000);
+  });
+
+═══════════════════════════════════════════════════════════════════════════════
+9. CÓDIGO BÁSICO DEL FRONTEND
+═══════════════════════════════════════════════════════════════════════════════
+
+frontend/src/config/firebase.js:
+
+  import { initializeApp } from 'firebase/app';
+  import { getAuth } from 'firebase/auth';
+  
+  const firebaseConfig = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  export const auth = getAuth(app);
+
+frontend/src/components/Login.jsx:
+
+  import React, { useState } from 'react';
+  import { signInWithEmailAndPassword } from 'firebase/auth';
+  import { auth } from '../config/firebase';
+  import { useNavigate } from 'react-router-dom';
+  
+  export default function Login() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
+  
+    const handleLogin = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      setError('');
+      
+      try {
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        
+        const { role } = await response.json();
+        
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userEmail', email);
+        
+        navigate(`/dashboard/${role}`);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    return (
+      <div style={{ maxWidth: '400px', margin: '100px auto' }}>
+        <h1>CRM Radio Móviles</h1>
+        <form onSubmit={handleLogin}>
+          <div>
+            <label>Email:</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>Contraseña:</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Ingresando...' : 'Ingresar'}
+          </button>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+        </form>
+        
+        <hr />
+        
+        <p><b>Usuarios de prueba:</b></p>
+        <p>operadora@test.com / Test123!</p>
+        <p>contadora@test.com / Test123!</p>
+        <p>admin@test.com / Test123!</p>
+      </div>
+    );
+  }
+
+═══════════════════════════════════════════════════════════════════════════════
+10. CORRER TODO CON DOCKER
+═══════════════════════════════════════════════════════════════════════════════
+
+En la raíz del proyecto:
+
+$ docker-compose up --build
+
+Esperar a que ambos servicios levanten:
+  - Backend en http://localhost:3000
+  - Frontend en http://localhost:5173
+
+Ir a http://localhost:5173 y probar login con cualquiera de los usuarios de prueba.
+
+═══════════════════════════════════════════════════════════════════════════════
+11. CHECKLIST DE FASE 1
+═══════════════════════════════════════════════════════════════════════════════
+
+□ Supabase creado y tablas creadas
+□ Firebase proyecto creado con usuarios de prueba
+□ Backend estructura completa
+□ Frontend estructura completa
+□ Docker y docker-compose configurados
+□ .env files configurados (nunca en git)
+□ Login funciona
+□ Redireccionamiento a dashboard según rol funciona
+□ Código en git (sin .env ni credenciales)
+
+═══════════════════════════════════════════════════════════════════════════════
+12. RESOLVER PROBLEMAS COMUNES
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ "Cannot GET /api/auth/verify"
+✓ Verificar que backend está corriendo en puerto 3000
+✓ Verificar CORS está permitido
+
+❌ "Firebase: Error (auth/invalid-api-key)"
+✓ Verificar config de Firebase en frontend/.env
+✓ Verificar que la API key está habilitada en Firebase Console
+
+❌ "SUPABASE_URL is undefined"
+✓ Verificar que backend/.env existe y tiene variables
+✓ Verificar que docker-compose.yml pasa las variables
+
+❌ "Connection refused localhost:3000"
+✓ docker-compose up --build
+✓ docker ps (verificar que los contenedores corren)
+
+═══════════════════════════════════════════════════════════════════════════════
+13. SIGUIENTE FASE
+═══════════════════════════════════════════════════════════════════════════════
+
+Una vez Fase 1 funciona:
+→ FASE 2: Integración WhatsApp, panel operadora, gestión de turnos
+
+Nos vemos en Claude Code. 🚀
+
+═══════════════════════════════════════════════════════════════════════════════

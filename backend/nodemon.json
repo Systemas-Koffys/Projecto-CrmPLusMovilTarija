@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    ".wwebjs_auth/**",
+    ".wwebjs_cache/**",
+    "serviceAccountKey.json",
+    "node_modules/**",
+    "*.test.js",
+    "src/test_key.js"
+  ],
+  "watch": ["src/"],
+  "ext": "js,json"
+}

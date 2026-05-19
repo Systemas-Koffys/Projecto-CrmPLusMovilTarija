@@ -1,0 +1,219 @@
+/* ═══════════════════════════════════════════
+   Dashboard Home Styles
+   ═══════════════════════════════════════════ */
+
+.dashboard-home {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Welcome */
+.dashboard-welcome {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-welcome__greeting {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.dashboard-welcome__date {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-transform: capitalize;
+}
+
+/* Status Banner */
+.dashboard-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.dashboard-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  animation: pulse 2s ease infinite;
+}
+
+.dashboard-status__text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.dashboard-status__version {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Stats Grid */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Section */
+.dashboard-section {
+  margin-top: 8px;
+}
+
+.dashboard-section__title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+/* Quick Actions */
+.dashboard-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-align: left;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.dashboard-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-md);
+}
+
+.dashboard-action--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dashboard-action__icon {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.dashboard-action__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashboard-action__desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.dashboard-action__content {
+  flex: 1;
+}
+
+/* Roadmap */
+.dashboard-roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roadmap-phase {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.roadmap-phase:hover {
+  border-color: var(--border-light);
+}
+
+.roadmap-phase--active {
+  border-color: var(--accent-green);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.roadmap-phase__num {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--border-light);
+  min-width: 40px;
+}
+
+.roadmap-phase--active .roadmap-phase__num {
+  color: var(--accent-green);
+}
+
+.roadmap-phase__content {
+  flex: 1;
+}
+
+.roadmap-phase__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.roadmap-phase__desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-welcome__greeting {
+    font-size: 22px;
+  }
+
+  .dashboard-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+}

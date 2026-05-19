@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Radio Móviles — Arquitectura</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --accent4: #10b981;
+    --accent5: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    padding: 40px 24px;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .header .badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    margin-bottom: 16px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .header h1 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header p {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 14px;
+    font-family: var(--font-mono);
+  }
+
+  /* Section title */
+  .section-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── ROLES ── */
+  .roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+
+  .role-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .role-card:hover { transform: translateY(-3px); }
+  .role-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .role-card.operadora::before { background: var(--accent); }
+  .role-card.contadora::before { background: var(--accent4); }
+  .role-card.admin::before { background: var(--accent2); }
+  .role-card.personal::before { background: var(--accent5); }
+
+  .role-card:hover.operadora { border-color: var(--accent); }
+  .role-card:hover.contadora { border-color: var(--accent4); }
+  .role-card:hover.admin { border-color: var(--accent2); }
+  .role-card:hover.personal { border-color: var(--accent5); }
+
+  .role-icon { font-size: 28px; margin-bottom: 10px; }
+  .role-name {
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .role-card.operadora .role-name { color: var(--accent); }
+  .role-card.contadora .role-name { color: var(--accent4); }
+  .role-card.admin .role-name { color: var(--accent2); }
+  .role-card.personal .role-name { color: var(--accent5); }
+
+  .role-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    font-family: var(--font-mono);
+  }
+
+  /* ── MÓDULOS ── */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .module {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .module:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+
+  .module-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .module-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .module-title {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  .module-num {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 2px 8px;
+  }
+
+  .module ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .module ul li {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.5;
+  }
+
+  .module ul li::before {
+    content: '→';
+    color: var(--border);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .module ul li.highlight::before { color: var(--accent); }
+  .module ul li.highlight { color: var(--text); }
+
+  /* color themes per module */
+  .mod-whatsapp .module-dot { background: #25d366; }
+  .mod-whatsapp .module-title { color: #25d366; }
+  .mod-whatsapp:hover { border-color: #25d366; }
+
+  .mod-operadora .module-dot { background: var(--accent); }
+  .mod-operadora .module-title { color: var(--accent); }
+  .mod-operadora:hover { border-color: var(--accent); }
+
+  .mod-turno .module-dot { background: var(--accent3); }
+  .mod-turno .module-title { color: var(--accent3); }
+  .mod-turno:hover { border-color: var(--accent3); }
+
+  .mod-cobros .module-dot { background: var(--accent5); }
+  .mod-cobros .module-title { color: var(--accent5); }
+  .mod-cobros:hover { border-color: var(--accent5); }
+
+  .mod-choferes .module-dot { background: var(--accent2); }
+  .mod-choferes .module-title { color: var(--accent2); }
+  .mod-choferes:hover { border-color: var(--accent2); }
+
+  .mod-clientes .module-dot { background: #ec4899; }
+  .mod-clientes .module-title { color: #ec4899; }
+  .mod-clientes:hover { border-color: #ec4899; }
+
+  .mod-contadora .module-dot { background: var(--accent4); }
+  .mod-contadora .module-title { color: var(--accent4); }
+  .mod-contadora:hover { border-color: var(--accent4); }
+
+  .mod-dashboard .module-dot { background: #a78bfa; }
+  .mod-dashboard .module-title { color: #a78bfa; }
+  .mod-dashboard:hover { border-color: #a78bfa; }
+
+  .mod-mapa .module-dot { background: #34d399; }
+  .mod-mapa .module-title { color: #34d399; }
+  .mod-mapa:hover { border-color: #34d399; }
+
+  .mod-reportes .module-dot { background: #fb923c; }
+  .mod-reportes .module-title { color: #fb923c; }
+  .mod-reportes:hover { border-color: #fb923c; }
+
+  .mod-personal .module-dot { background: #94a3b8; }
+  .mod-personal .module-title { color: #94a3b8; }
+  .mod-personal:hover { border-color: #94a3b8; }
+
+  /* ── FLUJO ── */
+  .flow {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .flow-step {
+    display: grid;
+    grid-template-columns: 120px 1px 1fr;
+    gap: 0 24px;
+    padding: 16px 0;
+    position: relative;
+  }
+
+  .flow-step-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    padding-top: 2px;
+    letter-spacing: 1px;
+  }
+
+  .flow-step-line {
+    background: var(--border);
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+
+  .flow-step-line::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .flow-step:last-child .flow-step-line {
+    background: linear-gradient(var(--border), transparent);
+  }
+
+  .flow-step-content {
+    padding-bottom: 8px;
+  }
+
+  .flow-step-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .flow-step-desc {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+  }
+
+  /* ── STACK ── */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+
+  .stack-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .stack-item:hover { border-color: var(--accent); }
+
+  .stack-icon { font-size: 22px; }
+  .stack-info {}
+  .stack-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .stack-role {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  /* ── FASES ── */
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s 0.5s ease both;
+  }
+
+  .phase {
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+  }
+
+  .phase-num {
+    font-family: var(--font-mono);
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .phase-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .phase:nth-child(1) .phase-title { color: var(--accent); }
+  .phase:nth-child(2) .phase-title { color: var(--accent4); }
+  .phase:nth-child(3) .phase-title { color: var(--accent2); }
+  .phase:nth-child(4) .phase-title { color: var(--accent5); }
+
+  .phase ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .phase ul li {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center;
+    padding: 32px;
+    border: 1px solid var(--border);
+    animation: fadeUp 0.8s 0.6s ease both;
+  }
+  .footer p {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 2;
+  }
+  .footer strong { color: var(--accent); }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .flow-step { grid-template-columns: 80px 1px 1fr; }
+    body { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="badge">v1.0 — Plano Arquitectónico</div>
+    <h1>CRM Radio Móviles</h1>
+    <p>Arquitectura completa del sistema · Tarija, Bolivia · 2026</p>
+  </div>
+
+  <!-- ROLES -->
+  <div class="section-title">01 — Roles de usuario</div>
+  <div class="roles-grid">
+    <div class="role-card operadora">
+      <div class="role-icon">🎧</div>
+      <div class="role-name">Operadora</div>
+      <div class="role-desc">Gestiona turno activo, servicios, asistencias, cobros rápidos y comunicación con clientes vía WhatsApp.</div>
+    </div>
+    <div class="role-card contadora">
+      <div class="role-icon">📊</div>
+      <div class="role-name">Contadora</div>
+      <div class="role-desc">Accede a datos financieros: cobros, caja, reportes por período. Recibe información consolidada de las operadoras.</div>
+    </div>
+    <div class="role-card admin">
+      <div class="role-icon">🔐</div>
+      <div class="role-name">Administrador</div>
+      <div class="role-desc">Acceso completo a todos los módulos. Ve dashboards globales, gestiona personal y configura el sistema.</div>
+    </div>
+    <div class="role-card personal">
+      <div class="role-icon">👤</div>
+      <div class="role-name">Personal / RRHH</div>
+      <div class="role-desc">Vista de fichas de choferes, documentos, vencimientos y estructura del equipo de la empresa.</div>
+    </div>
+  </div>
+
+  <!-- MÓDULOS -->
+  <div class="section-title">02 — Módulos del sistema</div>
+  <div class="modules-grid">
+
+    <div class="module mod-whatsapp">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">WhatsApp Gateway</div>
+        <div class="module-num">M-01</div>
+      </div>
+      <ul>
+        <li class="highlight">2 números conectados vía QR (whatsapp-web.js)</li>
+        <li>Recepción y envío de mensajes automático</li>
+        <li>Captura: número, hora, texto, GPS, archivos</li>
+        <li>Registro automático de clientes nuevos</li>
+        <li>Mensajes rápidos predeterminados</li>
+        <li>Blacklist de números problemáticos</li>
+      </ul>
+    </div>
+
+    <div class="module mod-operadora">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Panel Operadora</div>
+        <div class="module-num">M-02</div>
+      </div>
+      <ul>
+        <li class="highlight">Vista de mensajes entrantes en tiempo real</li>
+        <li>Crear y asignar servicio a un móvil</li>
+        <li>Estado del servicio: pendiente / en curso / entregado / cancelado</li>
+        <li>Registro de llamadas no contestadas</li>
+        <li>Seguimiento de clientes que reinciden</li>
+        <li>Cierre de turno guiado con checklist</li>
+      </ul>
+    </div>
+
+    <div class="module mod-turno">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Gestión de Turno</div>
+        <div class="module-num">M-03</div>
+      </div>
+      <ul>
+        <li class="highlight">Asignación de móviles al turno del día</li>
+        <li>Registro: hora entrada, limpieza, faltas</li>
+        <li>Asistencias por móvil (hasta 5 por turno)</li>
+        <li>Turno libre: registro de móviles fuera de programa</li>
+        <li>Estado en tiempo real: disponible / en servicio / gasolina / falla</li>
+        <li>Alertas si un móvil no registra asistencia</li>
+      </ul>
+    </div>
+
+    <div class="module mod-cobros">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Cobros Rápidos</div>
+        <div class="module-num">M-04</div>
+      </div>
+      <ul>
+        <li class="highlight">Registro en 2 clics: móvil + concepto + monto</li>
+        <li>Conceptos predeterminados: turno libre, abono, multa, limpieza, retraso</li>
+        <li>Historial de cobros del turno activo</li>
+        <li>Resumen de caja al cierre del turno</li>
+        <li>Datos pasan automáticamente a contadora</li>
+      </ul>
+    </div>
+
+    <div class="module mod-choferes">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Fichas de Choferes</div>
+        <div class="module-num">M-05</div>
+      </div>
+      <ul>
+        <li class="highlight">Datos personales: CI, teléfono, emergencia, sangre</li>
+        <li>Fecha de ingreso, si es socio</li>
+        <li>Fotos: chofer, auto, placa</li>
+        <li>Documentos: SOAT, revisión técnica, licencia, póliza</li>
+        <li>Alertas automáticas de documentos por vencer</li>
+        <li>Historial: turnos, servicios, incidentes, cobros</li>
+      </ul>
+    </div>
+
+    <div class="module mod-clientes">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Base de Clientes</div>
+        <div class="module-num">M-06</div>
+      </div>
+      <ul>
+        <li class="highlight">Registro automático por número de WhatsApp</li>
+        <li>Historial de servicios por cliente</li>
+        <li>Frecuencia de llamadas y zonas habituales</li>
+        <li>Marcado de clientes problemáticos (blacklist)</li>
+        <li>Ranking de clientes más frecuentes</li>
+      </ul>
+    </div>
+
+    <div class="module mod-contadora">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Módulo Contadora</div>
+        <div class="module-num">M-07</div>
+      </div>
+      <ul>
+        <li class="highlight">Vista consolidada de cobros por turno / día / mes</li>
+        <li>Tabla de pagos por móvil y concepto</li>
+        <li>Historial financiero por operadora</li>
+        <li>Exportación de reportes (PDF / Excel)</li>
+        <li>Resúmenes semanales y mensuales</li>
+      </ul>
+    </div>
+
+    <div class="module mod-dashboard">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Dashboard Analítico</div>
+        <div class="module-num">M-08</div>
+      </div>
+      <ul>
+        <li class="highlight">Horas pico de solicitudes por WhatsApp</li>
+        <li>Efectividad por operadora: atendidas vs canceladas</li>
+        <li>Ranking de móviles: más activos, más incidentes</li>
+        <li>Tiempo promedio de respuesta al cliente</li>
+        <li>Gráficas por día, semana y mes</li>
+        <li>KPIs en tiempo real del turno activo</li>
+      </ul>
+    </div>
+
+    <div class="module mod-mapa">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Mapa de Servicios</div>
+        <div class="module-num">M-09</div>
+      </div>
+      <ul>
+        <li class="highlight">Mapa de calor: zonas con más demanda</li>
+        <li>Puntos por servicio con GPS del cliente</li>
+        <li>Filtro por hora, día, operadora o móvil</li>
+        <li>Horas pico por zona</li>
+        <li>Exportable como imagen o PDF</li>
+      </ul>
+    </div>
+
+    <div class="module mod-reportes">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Reportes e Historial</div>
+        <div class="module-num">M-10</div>
+      </div>
+      <ul>
+        <li class="highlight">Reporte de cierre por turno (auto-generado)</li>
+        <li>Búsqueda por fecha, operadora o móvil</li>
+        <li>Re-descarga de cualquier turno pasado</li>
+        <li>Resumen mensual por operadora</li>
+        <li>Incidentes registrados con filtros</li>
+        <li>Exportación PDF con membrete</li>
+      </ul>
+    </div>
+
+    <div class="module mod-personal">
+      <div class="module-header">
+        <div class="module-dot"></div>
+        <div class="module-title">Gestión de Personal</div>
+        <div class="module-num">M-11</div>
+      </div>
+      <ul>
+        <li class="highlight">Directorio: operadoras, contadora, admins</li>
+        <li>Asignación de roles y permisos</li>
+        <li>Historial de turnos por operadora</li>
+        <li>Creación y baja de usuarios</li>
+        <li>Vista separada por tipo de usuario</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- FLUJO PRINCIPAL -->
+  <div class="section-title">03 — Flujo principal de un servicio</div>
+  <div class="flow">
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-step-num">PASO 01</div>
+        <div class="flow-step-line"></div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Cliente escribe por WhatsApp</div>
+          <div class="flow-step-desc">El sistema captura número, hora y mensaje. Si es cliente nuevo, lo registra automáticamente. Si hay GPS, guarda coordenadas.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">PASO 02</div>
+        <div class="flow-step-line"></div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Operadora recibe la solicitud en el panel</div>
+          <div class="flow-step-desc">Ve el mensaje en tiempo real. Puede ver historial del cliente. Crea el servicio con destino, datos de familia y hora.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">PASO 03</div>
+        <div class="flow-step-line"></div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Asignación del móvil</div>
+          <div class="flow-step-desc">La operadora ve el tablero de estados: qué móviles están disponibles. Asigna el servicio y registra el tiempo estimado. La coordinación verbal con choferes sigue por Zello.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">PASO 04</div>
+        <div class="flow-step-line"></div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Confirmación al cliente</div>
+          <div class="flow-step-desc">La operadora usa mensaje rápido predeterminado desde el CRM. El sistema registra la hora de respuesta (calcula tiempo de atención).</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">PASO 05</div>
+        <div class="flow-step-line"></div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Seguimiento y cierre del servicio</div>
+          <div class="flow-step-desc">La operadora actualiza el estado: en curso → entregado. Si hay incidente (retraso, falla), lo registra. El servicio queda guardado con todos los datos.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-step-num">PASO 06</div>
+        <div class="flow-step-line"></div>
+        <div class="flow-step-content">
+          <div class="flow-step-title">Cierre de turno</div>
+          <div class="flow-step-desc">El sistema guía el cierre con checklist. Genera el reporte automático: servicios, cobros de caja, asistencias. Queda guardado y descargable para siempre.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STACK TECNOLÓGICO -->
+  <div class="section-title">04 — Stack tecnológico</div>
+  <div class="stack-grid">
+    <div class="stack-item">
+      <div class="stack-icon">⚛️</div>
+      <div class="stack-info">
+        <div class="stack-label">React + Vite</div>
+        <div class="stack-role">Frontend · UI del CRM</div>
+      </div>
+    </div>    <div class="stack-item">
+      <div class="stack-icon">🟢</div>
+      <div class="stack-info">
+        <div class="stack-label">Node.js + Express</div>
+        <div class="stack-role">Backend · API REST</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🐋</div>
+      <div class="stack-info">
+        <div class="stack-label">Docker</div>
+        <div class="stack-role">Desarrollo local · contenedores</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🗄️</div>
+      <div class="stack-info">
+        <div class="stack-label">Supabase</div>
+        <div class="stack-role">PostgreSQL + Auth + Panel visual</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🔐</div>
+      <div class="stack-info">
+        <div class="stack-label">Firebase Auth</div>
+        <div class="stack-role">Login · Operadora / Contadora / Admin</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">💬</div>
+      <div class="stack-info">
+        <div class="stack-label">whatsapp-web.js</div>
+        <div class="stack-role">Conexión WhatsApp vía QR · 2 números</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🗺️</div>
+      <div class="stack-info">
+        <div class="stack-label">Leaflet.js</div>
+        <div class="stack-role">Mapa de servicios y calor</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">📄</div>
+      <div class="stack-info">
+        <div class="stack-label">PDF-lib / xlsx</div>
+        <div class="stack-role">Exportación de reportes</div>
+      </div>
+    </div>
+    <div class="stack-item">
+      <div class="stack-icon">🚀</div>
+      <div class="stack-info">
+        <div class="stack-label">Render / Railway</div>
+        <div class="stack-role">Deploy en producción · mobile-first</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FASES -->
+  <div class="section-title">05 — Fases de desarrollo</div>
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-num">01</div>
+      <div class="phase-title">Base y autenticación</div>
+      <ul>
+        <li>Proyecto Docker local</li>
+        <li>Supabase + PostgreSQL</li>
+        <li>Login con Firebase Auth</li>
+        <li>3 roles: Operadora, Contadora, Admin</li>
+        <li>Estructura completa de BD</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-num">02</div>
+      <div class="phase-title">WhatsApp + Turno</div>
+      <ul>
+        <li>Conexión whatsapp-web.js · 2 números</li>
+        <li>Panel operadora en tiempo real</li>
+        <li>Gestión de turno y móviles</li>
+        <li>Asistencias y cobros rápidos</li>
+        <li>Cierre de turno con reporte PDF</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-num">03</div>
+      <div class="phase-title">Fichas y reportes</div>
+      <ul>
+        <li>Fichas de choferes + documentos</li>
+        <li>Alertas de vencimientos</li>
+        <li>Base de clientes automática</li>
+        <li>Módulo contadora</li>
+        <li>Historial y re-descarga por fecha</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-num">04</div>
+      <div class="phase-title">Dashboard y deploy</div>
+      <ul>
+        <li>Dashboard analítico con KPIs</li>
+        <li>Mapa de calor con Leaflet.js</li>
+        <li>Horas pico y rankings</li>
+        <li>Deploy en Render</li>
+        <li>Pruebas móvil y estabilización</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>
+      <strong>CRM Radio Móviles</strong> · Plano arquitectónico v1.0<br>
+      11 módulos · 4 roles · 4 fases de desarrollo<br>
+      Stack: React · Node.js · Supabase · Firebase Auth · Docker · whatsapp-web.js · Leaflet.js<br>
+      Deploy: Render · Mobile-first · Exportable PDF · Tarija, Bolivia 2026
+    </p>
+  </div>
+
+</div>
+</body>
+</html>
