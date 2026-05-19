@@ -1,7 +1,8 @@
 const admin = require('firebase-admin');
 const path = require('path');
+const fs = require('fs');
 
-  const fs = require('fs');
+try {
   let serviceAccount;
 
   // Render Docker secrets path
