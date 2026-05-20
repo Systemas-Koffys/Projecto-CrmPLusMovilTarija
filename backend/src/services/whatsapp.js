@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const supabase = require('../config/supabase');
+const { processChatbotMessage } = require('./chatbot');
 
 // Store the client instances and their states
 const clients = {
@@ -100,7 +101,11 @@ function initWhatsApp() {
     // Incoming Messages
     client.on('message', async (message) => {
       try {
-        await handleIncomingMessage(key, message);
+        if (process.env.CHATBOT_ENABLED === 'true') {
+          await processChatbotMessage(key, client, message);
+        } else {
+          await handleIncomingMessage(key, message);
+        }
       } catch (error) {
         console.error(`[WhatsApp - ${key}] Error handling incoming message:`, error.message);
       }

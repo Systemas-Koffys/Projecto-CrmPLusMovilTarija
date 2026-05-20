@@ -3,6 +3,10 @@ import { useAuth } from '../hooks/useAuth';
 import DashboardLayout from './DashboardLayout';
 import WhatsAppManager from './WhatsAppManager';
 import TurnoActivo from './TurnoActivo';
+import ChoferesManager from './ChoferesManager';
+import PersonalManager from './PersonalManager';
+import CobrosManager from './CobrosManager';
+import ReportesManager from './ReportesManager';
 import './Dashboard.css';
 
 const roleConfig = {
@@ -75,7 +79,8 @@ export default function Dashboard() {
   });
 
   const handleActionClick = (targetTab) => {
-    if (targetTab === 'whatsapp' || targetTab === 'turno' || targetTab === 'turnos') {
+    const activeTabs = ['whatsapp', 'turno', 'turnos', 'choferes', 'personal', 'cobros', 'finanzas', 'reportes'];
+    if (activeTabs.includes(targetTab)) {
       setActiveSection(targetTab);
     } else {
       alert(`El módulo "${targetTab}" está planificado para la Fase 3/4.`);
@@ -89,6 +94,15 @@ export default function Dashboard() {
       case 'turno':
       case 'turnos':
         return <TurnoActivo />;
+      case 'choferes':
+        return <ChoferesManager viewMode={activeSection} />;
+      case 'personal':
+        return <PersonalManager />;
+      case 'cobros':
+      case 'finanzas':
+        return <CobrosManager />;
+      case 'reportes':
+        return <ReportesManager />;
       case 'home':
       default:
         return (
@@ -133,11 +147,11 @@ export default function Dashboard() {
               <h3 className="dashboard-section__title">Acciones rápidas</h3>
               <div className="dashboard-actions">
                 {config.quickActions.map((action, i) => {
-                  const isPhase2Action = action.targetTab === 'whatsapp' || action.targetTab === 'turno' || action.targetTab === 'turnos';
+                  const isActionEnabled = ['whatsapp', 'turno', 'turnos', 'choferes', 'personal', 'cobros', 'finanzas', 'reportes'].includes(action.targetTab);
                   return (
                     <button
                       key={i}
-                      className={`dashboard-action ${!isPhase2Action ? 'dashboard-action--disabled' : ''}`}
+                      className={`dashboard-action ${!isActionEnabled ? 'dashboard-action--disabled' : ''}`}
                       onClick={() => handleActionClick(action.targetTab)}
                     >
                       <div className="dashboard-action__icon">{action.icon}</div>
@@ -145,7 +159,7 @@ export default function Dashboard() {
                         <div className="dashboard-action__label">{action.label}</div>
                         <div className="dashboard-action__desc">{action.desc}</div>
                       </div>
-                      {!isPhase2Action && (
+                      {!isActionEnabled && (
                         <span className="badge badge--purple" style={{ fontSize: 9 }}>Fase 3/4</span>
                       )}
                     </button>

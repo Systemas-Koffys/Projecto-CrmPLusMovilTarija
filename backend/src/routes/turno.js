@@ -453,6 +453,14 @@ router.post('/servicio/crear', verifyToken, async (req, res) => {
     if (srvErr) throw srvErr;
 
     if (solicitud_id) {
+      // 1. Fetch request details (linea, client phone)
+      const { data: solData } = await supabase
+        .from('solicitudes_whatsapp')
+        .select('linea, cliente_telefono')
+        .eq('id', solicitud_id)
+        .maybeSingle();
+
+      // 2. Update status to 'atendido'
       await supabase
         .from('solicitudes_whatsapp')
         .update({
@@ -460,6 +468,26 @@ router.post('/servicio/crear', verifyToken, async (req, res) => {
           servicio_id: servicio.id
         })
         .eq('id', solicitud_id);
+
+      // 3. Send WhatsApp confirmation if line and driver details are available
+      if (solData && solData.linea && chofer_id) {
+        const { data: chofer } = await supabase
+          .from('choferes')
+          .select('nombre, numero_movil')
+          .eq('id', chofer_id)
+          .maybeSingle();
+
+        if (chofer) {
+          try {
+            const { sendMessage } = require('../services/whatsapp');
+            const msgContent = `¡Tu móvil ha sido asignado! 🚗💨\n\n*Móvil:* ${chofer.numero_movil}\n*Conductor:* ${chofer.nombre}\n\nEl vehículo se encuentra en camino a tu ubicación. ¡Muchas gracias por elegir Plus Móvil!`;
+            await sendMessage(solData.linea, solData.cliente_telefono, msgContent);
+            console.log(`[WhatsApp] Assignment notification sent to ${solData.cliente_telefono} via ${solData.linea}`);
+          } catch (wsErr) {
+            console.warn('[WhatsApp] Failed to send assignment notification:', wsErr.message);
+          }
+        }
+      }
     }
 
     res.json({ success: true, servicio });

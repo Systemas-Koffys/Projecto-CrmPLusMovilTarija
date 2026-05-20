@@ -231,13 +231,100 @@
 }
 
 /* ═══════ RESPONSIVE ═══════ */
+.mobile-header {
+  display: none;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+  animation: fadeIn 0.25s ease;
+}
+
 @media (max-width: 768px) {
   .dashboard-layout {
     grid-template-columns: 1fr;
+    padding-top: 60px; /* Space for the top mobile-header */
+  }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    z-index: 101;
+  }
+
+  .mobile-header__hamburger {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-size: 24px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+  }
+
+  .mobile-header__hamburger:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: var(--shadow-glow-cyan);
+  }
+
+  .mobile-header__logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mobile-header__logo-icon {
+    font-size: 20px;
+  }
+
+  .mobile-header__logo-title {
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .sidebar {
-    display: none; /* TODO: Mobile drawer */
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+    z-index: 102;
+    background: var(--bg-secondary);
+    box-shadow: none;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .dashboard-main {
+    min-height: calc(100vh - 60px);
   }
 
   .dashboard-main__content {

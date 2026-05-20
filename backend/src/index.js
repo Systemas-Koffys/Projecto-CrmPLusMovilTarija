@@ -33,11 +33,19 @@ const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const whatsappRoutes = require('./routes/whatsapp');
 const turnoRoutes = require('./routes/turno');
+const choferesRoutes = require('./routes/choferes');
+const cobrosRoutes = require('./routes/cobros');
+const reportesRoutes = require('./routes/reportes');
+const personalRoutes = require('./routes/personal');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/turno', turnoRoutes);
+app.use('/api/choferes', choferesRoutes);
+app.use('/api/cobros', cobrosRoutes);
+app.use('/api/reportes', reportesRoutes);
+app.use('/api/personal', personalRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
