@@ -16,8 +16,10 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl) or if origin is in the allowed list
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
+    // Allow requests with no origin (like mobile apps or curl), local development, or any deployment from Vercel for this project
+    const isVercelAllowed = origin && origin.includes('vercel.app') && origin.includes('projecto-crm-p-lus-movil-tarija');
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:') || isVercelAllowed) {
       callback(null, true);
     } else {
       callback(new Error('Bloqueado por CORS'));
