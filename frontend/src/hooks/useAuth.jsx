@@ -11,6 +11,32 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Check if there is a local demo token stored to persist session
+    const localToken = localStorage.getItem('authToken');
+    const localEmail = localStorage.getItem('userEmail');
+    if (localToken === 'demo-token-prueba-gmail-com' && localEmail === 'prueba@gmail.com') {
+      api.post('/api/auth/verify', { email: localEmail })
+        .then((userData) => {
+          setUser({
+            uid: 'demo-user-id',
+            email: localEmail,
+            ...userData,
+          });
+          setRole(userData.role);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('Error auto-verifying demo user:', err);
+          setUser(null);
+          setRole(null);
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('userRole');
+          setLoading(false);
+        });
+      return;
+    }
+
     if (!isFirebaseConfigured || !auth) {
       console.warn('⚠️ Firebase no configurado. Configura las variables VITE_FIREBASE_* en .env');
       setLoading(false);
@@ -58,6 +84,31 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
+    // Bypass Firebase for demo account
+    if (email === 'prueba@gmail.com' && password === 'prueba123') {
+      setLoading(true);
+      setError(null);
+      try {
+        const dummyToken = 'demo-token-prueba-gmail-com';
+        localStorage.setItem('authToken', dummyToken);
+        const userData = await api.post('/api/auth/verify', { email });
+        setUser({
+          uid: 'demo-user-id',
+          email,
+          ...userData,
+        });
+        setRole(userData.role);
+        localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('userEmail', email);
+        return userData;
+      } catch (err) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    }
+
     if (!isFirebaseConfigured || !auth) {
       throw new Error('Firebase no está configurado. Revisa las variables de entorno.');
     }

@@ -40,6 +40,32 @@ router.post('/verify', async (req, res) => {
         });
       }
 
+      // Auto-register demo user
+      if (email === 'prueba@gmail.com') {
+        const { data: newUser, error: insertError } = await supabase
+          .from('users_roles')
+          .insert([{ email: email, role: 'admin', nombre: 'Usuario de Prueba (Demo)', activo: true }])
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error('Error auto-registrando demo user:', insertError);
+          return res.json({
+            id: 'demo-id',
+            email: email,
+            role: 'admin',
+            nombre: 'Usuario de Prueba (Demo)'
+          });
+        }
+        
+        return res.json({
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          nombre: newUser.nombre,
+        });
+      }
+
       return res.status(404).json({ error: 'Usuario no encontrado', role: 'guest' });
     }
 

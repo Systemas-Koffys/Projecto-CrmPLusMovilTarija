@@ -12,17 +12,41 @@ const verifyToken = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    let decodedToken;
+
+    // Support local demo account login bypass
+    if (token === 'demo-token-prueba-gmail-com') {
+      decodedToken = {
+        uid: 'demo-user-id',
+        email: 'prueba@gmail.com'
+      };
+    } else {
+      decodedToken = await admin.auth().verifyIdToken(token);
+    }
 
     // Get role from Supabase
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('users_roles')
       .select('*')
       .eq('email', decodedToken.email)
       .single();
 
     if (error || !data) {
-      return res.status(403).json({ error: 'Usuario no registrado en el sistema' });
+      // Auto-register demo account in users_roles table if not present
+      if (decodedToken.email === 'prueba@gmail.com') {
+        const { data: newUser, error: insertError } = await supabase
+          .from('users_roles')
+          .insert([{ email: decodedToken.email, role: 'admin', nombre: 'Usuario de Prueba (Demo)', activo: true }])
+          .select()
+          .single();
+        if (!insertError) {
+          data = newUser;
+        }
+      }
+
+      if (!data) {
+        return res.status(403).json({ error: 'Usuario no registrado en el sistema' });
+      }
     }
 
     req.user = {
@@ -31,7 +55,15 @@ const verifyToken = async (req, res, next) => {
       role: data.role,
       nombre: data.nombre,
       userId: data.id,
+      isDemo: decodedToken.email === 'prueba@gmail.com'
     };
+
+    // Global protection for demo account: block any writes (POST/PUT/DELETE/PATCH)
+    if (req.user.isDemo && req.method !== 'GET') {
+      return res.status(403).json({ 
+        error: 'Modo Demostración: No tienes permisos para modificar datos, agregar registros o enviar mensajes.' 
+      });
+    }
 
     next();
   } catch (error) {
