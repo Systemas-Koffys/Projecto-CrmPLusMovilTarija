@@ -37,6 +37,7 @@ const choferesRoutes = require('./routes/choferes');
 const cobrosRoutes = require('./routes/cobros');
 const reportesRoutes = require('./routes/reportes');
 const personalRoutes = require('./routes/personal');
+const analyticsRoutes = require('./routes/analytics');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -46,6 +47,7 @@ app.use('/api/choferes', choferesRoutes);
 app.use('/api/cobros', cobrosRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/personal', personalRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
