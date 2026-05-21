@@ -132,7 +132,7 @@ export default function Dashboard() {
             <div className="dashboard-status animate-fade-up delay-1">
               <div className="dashboard-status__dot" />
               <span className="dashboard-status__text">
-                Sistema operativo · Fase 2 — WhatsApp + Turnos 🚀
+                Sistema operativo · Fase 4 — Inteligencia y Dashboards 🚀
               </span>
               <span className="dashboard-status__version">v1.1.0</span>
             </div>
@@ -186,29 +186,29 @@ export default function Dashboard() {
                   </div>
                   <span className="badge badge--green">Completado ✅</span>
                 </div>
-                <div className="roadmap-phase roadmap-phase--active">
+                <div className="roadmap-phase roadmap-phase--completed">
                   <div className="roadmap-phase__num">02</div>
                   <div className="roadmap-phase__content">
                     <div className="roadmap-phase__title">WhatsApp + Turno</div>
                     <div className="roadmap-phase__desc">Gateway, panel operadora, gestión de turnos</div>
                   </div>
-                  <span className="badge badge--yellow">En Desarrollo 🚀</span>
+                  <span className="badge badge--green">Completado ✅</span>
                 </div>
-                <div className="roadmap-phase">
+                <div className="roadmap-phase roadmap-phase--completed">
                   <div className="roadmap-phase__num">03</div>
                   <div className="roadmap-phase__content">
                     <div className="roadmap-phase__title">Fichas y Reportes</div>
                     <div className="roadmap-phase__desc">Choferes, documentos, contadora</div>
                   </div>
-                  <span className="badge badge--purple">Planificado</span>
+                  <span className="badge badge--green">Completado ✅</span>
                 </div>
-                <div className="roadmap-phase">
+                <div className="roadmap-phase roadmap-phase--active">
                   <div className="roadmap-phase__num">04</div>
                   <div className="roadmap-phase__content">
                     <div className="roadmap-phase__title">Dashboard y Deploy</div>
                     <div className="roadmap-phase__desc">Analítica, mapas, producción</div>
                   </div>
-                  <span className="badge badge--purple">Planificado</span>
+                  <span className="badge badge--yellow">Activo 🚀</span>
                 </div>
               </div>
             </div>
