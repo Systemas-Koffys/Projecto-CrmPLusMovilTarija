@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
+import { FaWhatsapp, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FiRefreshCw } from 'react-icons/fi';
 import './WhatsAppManager.css';
 
 export default function WhatsAppManager() {
@@ -43,25 +45,26 @@ export default function WhatsAppManager() {
     <div className="whatsapp-manager glass-card animate-fade-in">
       <div className="whatsapp-header">
         <div className="whatsapp-header__title">
-          <span className="whatsapp-header__icon">💬</span>
+          <FaWhatsapp className="whatsapp-header__icon" style={{ fontSize: '32px', color: '#25D366' }} />
           <div>
             <h3>Conexión de WhatsApp</h3>
             <p className="subtitle">Gateway de comunicación activa (2 líneas)</p>
           </div>
         </div>
         <button 
-          className={`btn btn--icon ${isRefreshing ? 'refreshing' : ''}`} 
+          className={`btn btn--secondary ${isRefreshing ? 'refreshing' : ''}`} 
           onClick={() => fetchStatus(true)}
           disabled={isRefreshing}
           title="Actualizar estado"
         >
-          🔄
+          <FiRefreshCw style={{ marginRight: '8px' }} />
+          Sincronizar
         </button>
       </div>
 
       {error && (
         <div className="whatsapp-error-banner">
-          <span>⚠️</span> {error}
+          <FaExclamationTriangle style={{ marginRight: '8px', color: '#ffcc00' }} /> {error}
         </div>
       )}
 
@@ -91,7 +94,7 @@ export default function WhatsAppManager() {
               <div className="whatsapp-line-action">
                 {isConnected && (
                   <div className="whatsapp-connected-success">
-                    <span className="success-icon">✅</span>
+                    <FaCheckCircle className="success-icon" style={{ color: '#25D366', fontSize: '24px' }} />
                     <p>Listo para enviar y recibir mensajes</p>
                   </div>
                 )}

@@ -22,8 +22,19 @@ const clients = {
 /**
  * Initialize WhatsApp Clients
  */
-function initWhatsApp() {
-  Object.keys(clients).forEach((key) => {
+async function initWhatsApp() {
+  const keys = Object.keys(clients);
+  
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    
+    // Check if the line has been disabled via environment variables to save memory on Render
+    if (process.env[`DISABLE_WHATSAPP_${key.toUpperCase()}`] === 'true' || process.env.DISABLE_ALL_WHATSAPP === 'true') {
+      console.log(`WhatsApp client for ${clients[key].name} is disabled via environment configuration.`);
+      clients[key].status = 'disabled';
+      continue;
+    }
+
     console.log(`Initializing WhatsApp client for: ${clients[key].name}...`);
     
     // Modern user agent to make sure WhatsApp Web allows scanning and doesn't loop
@@ -44,7 +55,25 @@ function initWhatsApp() {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--single-process'
+          '--single-process',
+          '--disable-gpu',
+          '--disable-audio-output',
+          '--disable-extensions',
+          '--js-flags="--max-old-space-size=150"',
+          '--disable-default-apps',
+          '--no-default-browser-check',
+          '--disable-background-networking',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-breakpad',
+          '--disable-component-extensions-with-background-pages',
+          '--disable-features=Translate',
+          '--disable-ipc-flooding-protection',
+          '--disable-renderer-backgrounding',
+          '--enable-features=NetworkServiceInProcess2',
+          '--export-tagged-pdf=disabled',
+          '--metrics-recording-only',
+          '--mute-audio'
         ]
       }
     });
@@ -115,7 +144,13 @@ function initWhatsApp() {
       console.error(`[WhatsApp - ${key}] Failed to initialize client:`, err.message);
       clients[key].status = 'disconnected';
     });
-  });
+
+    // If there are more clients to initialize, wait to avoid CPU/RAM peaks on startup
+    if (i < keys.length - 1) {
+      console.log(`[WhatsApp] Waiting 30 seconds before initializing the next client to save RAM...`);
+      await new Promise((resolve) => setTimeout(resolve, 30000));
+    }
+  }
 }
 
 /**

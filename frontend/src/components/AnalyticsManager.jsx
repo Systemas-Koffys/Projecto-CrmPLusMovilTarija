@@ -144,7 +144,7 @@ export default function AnalyticsManager() {
           color: 'rgba(255, 255, 255, 0.05)',
         },
         ticks: {
-          color: 'var(--text-secondary)',
+          color: '#cbd5e1', // literal color instead of var()
           font: { size: 11 }
         }
       },
@@ -153,7 +153,7 @@ export default function AnalyticsManager() {
           color: 'rgba(255, 255, 255, 0.05)',
         },
         ticks: {
-          color: 'var(--text-secondary)',
+          color: '#cbd5e1',
           font: { size: 11 },
           stepSize: 1
         }

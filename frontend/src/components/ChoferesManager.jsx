@@ -447,6 +447,25 @@ export default function ChoferesManager({ viewMode }) {
                     placeholder="Ej. ORH+"
                   />
                 </div>
+                
+                {/* Image Upload Placeholders */}
+                <div className="form-group" style={{ gridColumn: '1 / -1', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', marginTop: '8px' }}>
+                  <label style={{ color: 'var(--accent-cyan)' }}>📸 Fotografías (Módulo deshabilitado temporalmente)</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginTop: '8px' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '11px' }}>Foto de Perfil del Conductor</label>
+                      <input type="file" className="input" disabled title="Esta función se habilitará tras configurar el Storage" accept="image/*" />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: '11px' }}>Foto del Vehículo (Frontal)</label>
+                      <input type="file" className="input" disabled title="Esta función se habilitará tras configurar el Storage" accept="image/*" />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: '11px' }}>Foto del Vehículo (Lateral/Placa)</label>
+                      <input type="file" className="input" disabled title="Esta función se habilitará tras configurar el Storage" accept="image/*" />
+                    </div>
+                  </div>
+                </div>
                 <div className="form-group checkbox-group">
                   <label>
                     <input 

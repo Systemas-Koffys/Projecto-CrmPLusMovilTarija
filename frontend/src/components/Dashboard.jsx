@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import api from '../utils/api';
 import DashboardLayout from './DashboardLayout';
 import WhatsAppManager from './WhatsAppManager';
 import TurnoActivo from './TurnoActivo';
@@ -71,7 +72,26 @@ const roleConfig = {
 export default function Dashboard() {
   const { user, role } = useAuth();
   const [activeSection, setActiveSection] = useState('home');
+  const [dashboardStats, setDashboardStats] = useState(null);
   const config = roleConfig[role] || roleConfig.admin;
+
+  useEffect(() => {
+    if (activeSection === 'home') {
+      api.get('/api/analytics/kpis')
+        .then(res => setDashboardStats(res.kpis))
+        .catch(err => console.error("Error loading dashboard stats:", err));
+    }
+  }, [activeSection]);
+
+  const getStatValue = (label) => {
+    if (!dashboardStats) return '—';
+    const lower = label.toLowerCase();
+    if (lower.includes('choferes') || lower.includes('móviles')) return dashboardStats.activeChoferes || '0';
+    if (lower.includes('servicios') || lower.includes('solicitudes')) return dashboardStats.totalServicios30Days || '0';
+    if (lower.includes('caja') || lower.includes('ingresos')) return `Bs. ${dashboardStats.totalEarnings30Days?.toFixed(2) || '0.00'}`;
+    if (lower.includes('operadoras') || lower.includes('clientes')) return dashboardStats.totalClientes || '0';
+    return '—';
+  };
 
   const now = new Date();
   const greeting = now.getHours() < 12 ? 'Buenos días' :
@@ -142,7 +162,7 @@ export default function Dashboard() {
               {config.stats.map((stat, i) => (
                 <div key={i} className={`stat-card stat-card--${stat.color}`}>
                   <div className="stat-card__icon">{stat.icon}</div>
-                  <div className="stat-card__value">{stat.value}</div>
+                  <div className="stat-card__value">{getStatValue(stat.label)}</div>
                   <div className="stat-card__label">{stat.label}</div>
                 </div>
               ))}

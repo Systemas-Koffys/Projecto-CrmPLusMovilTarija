@@ -571,3 +571,7 @@
     font-size: 12px;
   }
 }
+
+@media screen {
+  .hide-on-screen { display: none !important; }
+}

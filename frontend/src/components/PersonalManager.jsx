@@ -243,6 +243,12 @@ export default function PersonalManager() {
                 </select>
               </div>
 
+              <div className="form-group" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', marginTop: '8px' }}>
+                <label style={{ color: 'var(--accent-cyan)' }}>📸 Foto de Perfil (Módulo deshabilitado temporalmente)</label>
+                <input type="file" className="input" disabled title="Esta función se habilitará tras configurar el Storage" accept="image/*" />
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>La foto aparecerá en la tarjeta de presentación de la cuenta.</span>
+              </div>
+
               <div className="form-group-checkbox">
                 <input 
                   type="checkbox" 

@@ -21,8 +21,9 @@ export default function ReportesManager() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Tab selection in detail view
   const [activeTab, setActiveTab] = useState('resumen');
+  const [dateFilter, setDateFilter] = useState('');
+  const [operatorFilter, setOperatorFilter] = useState('');
 
   useEffect(() => {
     fetchClosedShifts();
@@ -76,6 +77,32 @@ export default function ReportesManager() {
         </div>
       </div>
 
+      {/* Filtros */}
+      <div className="reportes-filters glass-card" style={{ padding: '16px', marginBottom: '20px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        <input 
+          type="date" 
+          className="input" 
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          style={{ maxWidth: '200px' }}
+        />
+        <input 
+          type="text" 
+          className="input" 
+          placeholder="Buscar por operadora..."
+          value={operatorFilter}
+          onChange={(e) => setOperatorFilter(e.target.value)}
+          style={{ maxWidth: '300px' }}
+        />
+        <button 
+          className="btn btn--ghost" 
+          onClick={() => { setDateFilter(''); setOperatorFilter(''); }}
+          disabled={!dateFilter && !operatorFilter}
+        >
+          Limpiar Filtros
+        </button>
+      </div>
+
       {error && (
         <div className="reportes-error">
           {error}
@@ -106,7 +133,14 @@ export default function ReportesManager() {
                 </tr>
               </thead>
               <tbody>
-                {turnos.map((t) => {
+                {turnos.filter(t => {
+                  if (dateFilter && t.fecha !== dateFilter) return false;
+                  if (operatorFilter) {
+                    const opName = (t.operadora?.nombre || 'Administrador').toLowerCase();
+                    if (!opName.includes(operatorFilter.toLowerCase())) return false;
+                  }
+                  return true;
+                }).map((t) => {
                   const res = t.resumen || {};
                   return (
                     <tr key={t.id}>
@@ -225,9 +259,8 @@ export default function ReportesManager() {
                 <div className="reportes-tab-content">
                   
                   {/* Resumen General Tab */}
-                  {(activeTab === 'resumen' || window.matchMedia('print').matches) && (
-                    <div className="reportes-section">
-                      <h4>Datos Generales del Turno</h4>
+                  <div className={`reportes-section ${activeTab !== 'resumen' ? 'hide-on-screen' : ''}`}>
+                    <h4>Datos Generales del Turno</h4>
                       <div className="reportes-details-grid">
                         <div className="rep-detail-field">
                           <HiOutlineCalendar />
@@ -263,12 +296,10 @@ export default function ReportesManager() {
                         <p>{detailedData.turno.notas || 'Sin observaciones registradas.'}</p>
                       </div>
                     </div>
-                  )}
-
+                  
                   {/* Asistencias Tab */}
-                  {(activeTab === 'asistencias' || window.matchMedia('print').matches) && (
-                    <div className="reportes-section">
-                      <h4>Registro de Asistencia de Móviles</h4>
+                  <div className={`reportes-section ${activeTab !== 'asistencias' ? 'hide-on-screen' : ''}`}>
+                    <h4>Registro de Asistencia de Móviles</h4>
                       <table className="rep-details-table">
                         <thead>
                           <tr>
@@ -297,12 +328,10 @@ export default function ReportesManager() {
                         </tbody>
                       </table>
                     </div>
-                  )}
-
+                  
                   {/* Cobros Tab */}
-                  {(activeTab === 'cobros' || window.matchMedia('print').matches) && (
-                    <div className="reportes-section">
-                      <h4>Caja del Turno (Cobros Registrados)</h4>
+                  <div className={`reportes-section ${activeTab !== 'cobros' ? 'hide-on-screen' : ''}`}>
+                    <h4>Historial de Cobros Recibidos</h4>
                       <table className="rep-details-table">
                         <thead>
                           <tr>
@@ -331,12 +360,10 @@ export default function ReportesManager() {
                         </tbody>
                       </table>
                     </div>
-                  )}
-
+                  
                   {/* Servicios Tab */}
-                  {(activeTab === 'servicios' || window.matchMedia('print').matches) && (
-                    <div className="reportes-section">
-                      <h4>Historial de Servicios de Radio</h4>
+                  <div className={`reportes-section ${activeTab !== 'servicios' ? 'hide-on-screen' : ''}`}>
+                    <h4>Detalle de Servicios / Viajes</h4>
                       <table className="rep-details-table">
                         <thead>
                           <tr>
@@ -371,8 +398,7 @@ export default function ReportesManager() {
                         </tbody>
                       </table>
                     </div>
-                  )}
-
+                  
                 </div>
               </div>
             ) : null}

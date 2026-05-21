@@ -13,6 +13,7 @@ export default function TurnoActivo() {
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [shiftSummary, setShiftSummary] = useState(null);
 
   // Form values
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -86,7 +87,7 @@ export default function TurnoActivo() {
     try {
       setLoading(true);
       const res = await api.post('/api/turno/cerrar', { notes: 'Turno cerrado desde panel' });
-      alert(`Turno cerrado con éxito.\nTotal recaudado en caja: Bs. ${res.summary.total_caja}`);
+      setShiftSummary(res.summary);
       await fetchShiftStatus();
     } catch (err) {
       alert(err.response?.data?.error || 'Error al cerrar el turno');
@@ -584,6 +585,34 @@ export default function TurnoActivo() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {shiftSummary && (
+        <div className="modal-overlay animate-fade-in">
+          <div className="modal-content glass-card" style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <div className="modal-header" style={{ justifyContent: 'center' }}>
+              <h3 style={{ fontSize: '22px', color: 'var(--accent-cyan)' }}>🎉 Turno Cerrado</h3>
+            </div>
+            <div className="modal-body" style={{ padding: '24px 0' }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>Tu jornada ha finalizado correctamente. Aquí tienes el resumen:</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px' }}>
+                  <span>🚗 Servicios despachados:</span>
+                  <strong>{shiftSummary.total_servicios}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+                  <span>💰 Caja del turno:</span>
+                  <strong style={{ color: 'var(--accent-green)' }}>Bs. {shiftSummary.total_caja}</strong>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ justifyContent: 'center', marginTop: '10px' }}>
+              <button type="button" className="btn btn--primary" onClick={() => setShiftSummary(null)}>
+                Entendido, descansar
+              </button>
+            </div>
           </div>
         </div>
       )}
