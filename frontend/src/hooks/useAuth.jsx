@@ -93,7 +93,6 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     // Bypass Firebase for demo account
     if (email === 'prueba@gmail.com' && password === 'prueba123') {
-      setLoading(true);
       setError(null);
       try {
         const dummyToken = 'demo-token-prueba-gmail-com';
@@ -111,8 +110,6 @@ export function AuthProvider({ children }) {
       } catch (err) {
         setError(err.message);
         throw err;
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -120,7 +117,6 @@ export function AuthProvider({ children }) {
       throw new Error('Firebase no está configurado. Revisa las variables de entorno.');
     }
 
-    setLoading(true);
     setError(null);
     try {
       const { signInWithEmailAndPassword } = await import('firebase/auth');
@@ -154,15 +150,15 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('userRole');
 
       let message;
-      if (err.response && (err.response.status === 404 || err.response.status === 403)) {
+      if (err.message === 'Usuario no encontrado' || (err.message && err.message.includes('404'))) {
         message = 'Tu cuenta no está registrada en el sistema CRM de Plus Móvil.';
+      } else if (err.message === 'Cuenta desactivada' || (err.message && err.message.includes('403'))) {
+        message = 'Tu cuenta está desactivada. Contacta al administrador.';
       } else {
         message = getFirebaseErrorMessage(err.code || err.message);
       }
       setError(message);
       throw new Error(message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -171,7 +167,6 @@ export function AuthProvider({ children }) {
       throw new Error('Firebase no está configurado. Revisa las variables de entorno.');
     }
 
-    setLoading(true);
     setError(null);
     try {
       const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
@@ -212,17 +207,17 @@ export function AuthProvider({ children }) {
       let message = 'Error al iniciar sesión con Google';
       if (err.code === 'auth/popup-closed-by-user') {
         message = 'El inicio de sesión fue cancelado';
-      } else if (err.response && (err.response.status === 404 || err.response.status === 403)) {
+      } else if (err.message === 'Usuario no encontrado' || (err.message && err.message.includes('404'))) {
         message = 'Tu correo de Google no está registrado en el sistema CRM de Plus Móvil.';
-      } else if (err.message && err.message.includes('Usuario no encontrado')) {
-        message = 'Tu correo de Google no está registrado en el sistema.';
+      } else if (err.message === 'Cuenta desactivada' || (err.message && err.message.includes('403'))) {
+        message = 'Tu correo de Google está desactivado. Contacta al administrador.';
       } else if (err.code) {
         message = getFirebaseErrorMessage(err.code);
+      } else if (err.message) {
+        message = err.message;
       }
       setError(message);
       throw new Error(message);
-    } finally {
-      setLoading(false);
     }
   };
 
