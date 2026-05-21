@@ -16,7 +16,7 @@ export default function CobrosManager() {
 
   // Filters state
   const [filterConcepto, setFilterConcepto] = useState('todos');
-  const [filterPeriodo, setFilterPeriodo] = useState('hoy');
+  const [filterPeriodo, setFilterPeriodo] = useState('todos');
   const [filterMovil, setFilterMovil] = useState('');
   const [customDates, setCustomDates] = useState({
     startDate: '',
@@ -191,6 +191,7 @@ export default function CobrosManager() {
           <div className="filter-group">
             <label><HiOutlineCalendar /> Periodo</label>
             <select value={filterPeriodo} onChange={e => setFilterPeriodo(e.target.value)}>
+              <option value="todos">Todo el historial</option>
               <option value="hoy">Hoy</option>
               <option value="ayer">Ayer</option>
               <option value="semana">Últimos 7 días</option>

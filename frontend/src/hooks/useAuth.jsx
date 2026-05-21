@@ -65,6 +65,13 @@ export function AuthProvider({ children }) {
             setUser(null);
             setRole(null);
             localStorage.removeItem('authToken');
+            // Log out from Firebase since they are not authorized in our database backend
+            try {
+              const { signOut } = await import('firebase/auth');
+              await signOut(auth);
+            } catch (signOutErr) {
+              console.error('Error signing out unauthorized user:', signOutErr);
+            }
           }
         } else {
           setUser(null);
@@ -134,7 +141,24 @@ export function AuthProvider({ children }) {
 
       return userData;
     } catch (err) {
-      const message = getFirebaseErrorMessage(err.code || err.message);
+      try {
+        const { signOut } = await import('firebase/auth');
+        if (auth.currentUser) {
+          await signOut(auth);
+        }
+      } catch (signOutErr) {
+        console.error('Error signing out after verification failure:', signOutErr);
+      }
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+
+      let message;
+      if (err.response && (err.response.status === 404 || err.response.status === 403)) {
+        message = 'Tu cuenta no está registrada en el sistema CRM de Plus Móvil.';
+      } else {
+        message = getFirebaseErrorMessage(err.code || err.message);
+      }
       setError(message);
       throw new Error(message);
     } finally {
@@ -153,7 +177,6 @@ export function AuthProvider({ children }) {
       const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
       const provider = new GoogleAuthProvider();
       
-      // Force account selection screen
       provider.setCustomParameters({ prompt: 'select_account' });
       
       const result = await signInWithPopup(auth, provider);
@@ -174,9 +197,23 @@ export function AuthProvider({ children }) {
 
       return userData;
     } catch (err) {
+      try {
+        const { signOut } = await import('firebase/auth');
+        if (auth.currentUser) {
+          await signOut(auth);
+        }
+      } catch (signOutErr) {
+        console.error('Error signing out after Google verification failure:', signOutErr);
+      }
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+
       let message = 'Error al iniciar sesión con Google';
       if (err.code === 'auth/popup-closed-by-user') {
         message = 'El inicio de sesión fue cancelado';
+      } else if (err.response && (err.response.status === 404 || err.response.status === 403)) {
+        message = 'Tu correo de Google no está registrado en el sistema CRM de Plus Móvil.';
       } else if (err.message && err.message.includes('Usuario no encontrado')) {
         message = 'Tu correo de Google no está registrado en el sistema.';
       } else if (err.code) {

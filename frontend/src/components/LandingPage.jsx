@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   FaCar, FaUserTie, FaMoneyBillWave, FaChartLine, 
@@ -10,23 +10,113 @@ import {
 } from 'react-icons/fa';
 import './LandingPage.css';
 
+const chatSteps = [
+  {
+    sender: 'client',
+    text: 'Hola',
+    time: '02:30 PM'
+  },
+  {
+    sender: 'bot',
+    text: '👋 ¡Hola! Bienvenido al asistente de Plus Móvil Tarija. ¿Qué servicio deseas?\n\n1️⃣ **Móvil (Radio Taxi)**\n2️⃣ **Encomienda / Mensajería**\n3️⃣ **Transporte de Carga**\n4️⃣ **Otros Servicios**',
+    time: '02:30 PM'
+  },
+  {
+    sender: 'client',
+    text: 'Móvil',
+    time: '02:31 PM'
+  },
+  {
+    sender: 'bot',
+    text: 'Taxímetro y tarifa fija a tu disposición. 🚕 Por favor, envíanos tu **ubicación GPS actual** y el **apellido de tu familia** para registrar el servicio de despacho.',
+    time: '02:31 PM'
+  },
+  {
+    sender: 'client',
+    text: '📍 Ubicación GPS enviada\nFamilia Flores',
+    time: '02:32 PM'
+  },
+  {
+    sender: 'radio',
+    header: '📻 Frecuencia Central — Despacho',
+    text: '«Central a móviles en El Molino (Sucre y Bolívar). Servicio solicitado para Familia Flores. ¿Unidad disponible QAP?»',
+    time: '02:32 PM'
+  },
+  {
+    sender: 'radio',
+    header: '📻 Móvil 25 — Respuesta',
+    text: '«Móvil 25 QAP. Central, me encuentro en calle Ingavi, a 3 cuadras. Copio el servicio y voy al QTH.»',
+    time: '02:32 PM'
+  },
+  {
+    sender: 'bot',
+    text: '✅ **¡Móvil asignado!** La unidad **Móvil 25** va en camino. Tiempo estimado de llegada: **5 minutos**. 🚗',
+    time: '02:33 PM'
+  },
+  {
+    sender: 'radio',
+    header: '📻 Frecuencia Central — Llegada',
+    text: '«Móvil 25 en el QTH de la Familia Flores. Iniciando espera.»',
+    time: '02:35 PM'
+  },
+  {
+    sender: 'bot',
+    text: '🔔 **¡Tu móvil ha llegado!** El **Móvil 25** está en tu ubicación. Por favor, puedes salir a abordar. ¡Gracias por confiar en Plus Móvil! 👍',
+    time: '02:35 PM'
+  }
+];
+
+// Helper to parse bold text in JSX
+const parseBoldText = (text) => {
+  const parts = text.split('**');
+  return parts.map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part);
+};
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const [activeComparisonTab, setActiveComparisonTab] = useState('after');
   const [chatStep, setChatStep] = useState(0);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const chatBodyRef = useRef(null);
+  const timerRef = useRef(null);
 
-  // Auto transition for chat simulator
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setChatStep((prev) => (prev + 1) % 3);
+  const startChatInterval = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setChatStep((prev) => (prev + 1) % 10);
     }, 4500);
-    return () => clearInterval(timer);
+  };
+
+  useEffect(() => {
+    startChatInterval();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
+
+  // Scroll to bottom on chat step change
+  useEffect(() => {
+    if (chatBodyRef.current) {
+      setTimeout(() => {
+        if (chatBodyRef.current) {
+          chatBodyRef.current.scrollTo({
+            top: chatBodyRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 50);
+    }
+  }, [chatStep]);
+
+  const handleDotClick = (index) => {
+    setChatStep(index);
+    startChatInterval();
+  };
 
   const handleDemoRedirect = () => {
     navigate('/login');
   };
+
 
   return (
     <div className="landing-container">
@@ -338,29 +428,34 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="chat-body">
-                {chatStep >= 0 && (
-                  <div className="chat-bubble client">
-                    Hola, por favor necesito un móvil en El Molino, calle Sucre esquina Bolívar.
-                    <span className="chat-time">02:30 PM</span>
-                  </div>
-                )}
-
-                {chatStep >= 1 && (
-                  <div className="chat-bubble bot">
-                    👋 ¡Hola! Con gusto te programamos una unidad en la zona <strong>El Molino</strong>. 
-                    Buscando móviles disponibles más cercanos... 🔍
-                    <span className="chat-time">02:31 PM</span>
-                  </div>
-                )}
-
-                {chatStep >= 2 && (
-                  <div className="chat-bubble bot">
-                    ✅ ¡Móvil asignado! La unidad **Móvil 206** va en camino a tu ubicación. 
-                    Tiempo estimado de llegada: 4 minutos. 🚗
-                    <span className="chat-time">02:31 PM</span>
-                  </div>
-                )}
+              <div className="chat-body" ref={chatBodyRef}>
+                {chatSteps.slice(0, chatStep + 1).map((step, index) => {
+                  if (step.sender === 'radio') {
+                    return (
+                      <div className="chat-bubble radio" key={index}>
+                        <div className="radio-header">
+                          <FaRobot style={{ fontSize: '0.9rem' }} /> {step.header}
+                        </div>
+                        <div className="radio-text">{step.text}</div>
+                        <span className="chat-time">{step.time}</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className={`chat-bubble ${step.sender}`} key={index}>
+                      {step.text.split('\n').map((line, lIdx) => (
+                        <div key={lIdx}>
+                          {line.startsWith('1️⃣') || line.startsWith('2️⃣') || line.startsWith('3️⃣') || line.startsWith('4️⃣') || line.startsWith('📍') || line.startsWith('✅') || line.startsWith('🔔') || line.startsWith('🚕') ? (
+                            <span>{line}</span>
+                          ) : (
+                            parseBoldText(line)
+                          )}
+                        </div>
+                      ))}
+                      <span className="chat-time">{step.time}</span>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="chat-input-bar">
@@ -370,19 +465,24 @@ export default function LandingPage() {
             </div>
 
             <div className="auto-step-indicator">
-              <span className={`step-dot ${chatStep === 0 ? 'active' : ''}`} onClick={() => setChatStep(0)}></span>
-              <span className={`step-dot ${chatStep === 1 ? 'active' : ''}`} onClick={() => setChatStep(1)}></span>
-              <span className={`step-dot ${chatStep === 2 ? 'active' : ''}`} onClick={() => setChatStep(2)}></span>
+              {chatSteps.map((_, index) => (
+                <span 
+                  key={index}
+                  className={`step-dot ${chatStep === index ? 'active' : ''}`} 
+                  onClick={() => handleDotClick(index)}
+                  title={`Paso ${index + 1}`}
+                ></span>
+              ))}
             </div>
           </div>
 
           <div className="auto-text-content">
-            <span className="why-tag auto-badge">Automatización con API</span>
-            <h2 className="why-heading" style={{ marginTop: '0.8rem' }}>Integración de WhatsApp y Respuestas Inteligentes</h2>
+            <span className="why-tag auto-badge">Conexión Multilínea WhatsApp</span>
+            <h2 className="why-heading" style={{ marginTop: '0.8rem' }}>Integración Inteligente con 3 Líneas de WhatsApp</h2>
             <p className="why-text">
-              Diseñado para admitir la automatización de despachos conectando una API de WhatsApp (n8n u otra pasarela). 
-              La inteligencia del sistema permite responder a las solicitudes de los clientes simulando a una persona real, 
-              capturar su ubicación y coordinar al instante.
+              El sistema CRM está diseñado para operar con hasta **3 líneas de WhatsApp simultáneas**, gestionando de forma 
+              automática las solicitudes de los clientes. El asistente virtual interactúa fluidamente, procesa ubicaciones y 
+              despacha pedidos a la flota.
             </p>
 
             <div className="why-pain-points" style={{ marginTop: '1.5rem' }}>
@@ -391,8 +491,8 @@ export default function LandingPage() {
                   <FaRobot />
                 </div>
                 <div>
-                  <h4 className="pain-title">Conversaciones Fluidas</h4>
-                  <p className="pain-desc">El bot lee el mensaje y coordina de manera natural con el cliente.</p>
+                  <h4 className="pain-title">Atención Conversacional y Filtros</h4>
+                  <p className="pain-desc">El bot interactúa con naturalidad, detecta reincidentes y consulta qué servicio requiere el cliente antes de despachar.</p>
                 </div>
               </div>
 
@@ -401,8 +501,8 @@ export default function LandingPage() {
                   <FaMapMarkedAlt />
                 </div>
                 <div>
-                  <h4 className="pain-title">Envío de Ubicaciones por GPS</h4>
-                  <p className="pain-desc">El cliente envía su ubicación y el CRM calcula cuál conductor activo está más próximo.</p>
+                  <h4 className="pain-title">GPS y Mapa de Calor de Demanda</h4>
+                  <p className="pain-desc">Las ubicaciones GPS enviadas por los clientes se procesan en tiempo real para alimentar un mapa de calor y estadísticas de tráfico.</p>
                 </div>
               </div>
 
@@ -411,8 +511,8 @@ export default function LandingPage() {
                   <FaCheckCircle />
                 </div>
                 <div>
-                  <h4 className="pain-title">Coordinación 3 Vías</h4>
-                  <p className="pain-desc">Actualizaciones simultáneas e instantáneas al cliente, operadora de despacho y chofer asignado.</p>
+                  <h4 className="pain-title">Coordinación y Registro de Multas</h4>
+                  <p className="pain-desc">Comunica a clientes, operadoras y conductores. Si se detecta un incidente en la entrega, la operadora puede sancionar o registrar multas al instante.</p>
                 </div>
               </div>
             </div>

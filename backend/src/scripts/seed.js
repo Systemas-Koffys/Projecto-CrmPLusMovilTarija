@@ -228,32 +228,51 @@ async function seed() {
     if (srvErr) throw srvErr;
     console.log(`✅ 120 servicios históricos generados.`);
 
-    // 8. Insertar Cobros (45 cobros distribuidos)
-    console.log('💰 Generando cobros y multas...');
+    // 8. Insertar Cobros (150+ cobros distribuidos uniformemente)
+    console.log('💰 Generando cobros y multas uniformemente...');
     const cobrosData = [];
-    const conceptos = ['Tarjeta Diaria', 'Aporte Semanal', 'Multa Uniforme', 'Multa Atraso', 'Aporte Pro-Templo'];
+    const conceptos = ['Turno Libre', 'Limpieza', 'Multa', 'Otro'];
 
-    for (let c = 0; c < 45; c++) {
-      const turn = turnos[c % turnos.length];
-      const chf = activeChoferes[c % activeChoferes.length];
-      const concepto = conceptos[c % conceptos.length];
+    // Para cada uno de los 31 turnos generamos entre 4 y 6 cobros para tener un historial completo
+    for (let t = 0; t < turnos.length; t++) {
+      const turn = turnos[t];
+      const numCobros = 5; // 5 cobros por turno constante = 155 cobros en total
       
-      const date = new Date(turn.fecha);
-      date.setHours(9 + (c % 5), 0, 0);
+      for (let c = 0; c < numCobros; c++) {
+        const chf = activeChoferes[(t * numCobros + c) % activeChoferes.length];
+        const concepto = conceptos[(t * numCobros + c) % conceptos.length];
+        
+        const date = new Date(turn.fecha);
+        // Distribuir horas entre las 8:00 AM y las 13:00 PM para cada cobro del turno
+        date.setHours(8 + c, Math.floor(Math.random() * 60), 0);
 
-      let monto = 10.00;
-      if (concepto === 'Aporte Semanal') monto = 50.00;
-      if (concepto.includes('Multa')) monto = 20.00;
+        let monto = 15.00;
+        let notas = 'Cobro administrativo regular.';
 
-      cobrosData.push({
-        chofer_id: chf.id,
-        operadora_id: turn.operadora_id,
-        turno_id: turn.id,
-        concepto: concepto,
-        monto: monto,
-        fecha_hora: date.toISOString(),
-        notas: concepto.includes('Multa') ? 'Emitida por no cumplir las normas en turno.' : 'Cobro administrativo regular.'
-      });
+        if (concepto === 'Turno Libre') {
+          monto = 15.00;
+          notas = 'Cobro de turno libre de operación.';
+        } else if (concepto === 'Limpieza') {
+          monto = 10.00;
+          notas = 'Lavado y desinfección diaria del vehículo.';
+        } else if (concepto === 'Multa') {
+          monto = 20.00;
+          notas = c % 2 === 0 ? 'Multa por uniforme incompleto.' : 'Multa por atraso en marcar ingreso.';
+        } else if (concepto === 'Otro') {
+          monto = 30.00;
+          notas = 'Aporte extraordinario administrativo.';
+        }
+
+        cobrosData.push({
+          chofer_id: chf.id,
+          operadora_id: turn.operadora_id,
+          turno_id: turn.id,
+          concepto: concepto,
+          monto: monto,
+          fecha_hora: date.toISOString(),
+          notas: notas
+        });
+      }
     }
 
     const { error: cobErr } = await supabase
@@ -261,7 +280,7 @@ async function seed() {
       .insert(cobrosData);
 
     if (cobErr) throw cobErr;
-    console.log(`✅ 45 cobros y multas cargados en base de datos.`);
+    console.log(`✅ ${cobrosData.length} cobros y multas cargados en base de datos.`);
 
     // 9. Asistencias de conductores
     console.log('📝 Generando registros de asistencias...');
