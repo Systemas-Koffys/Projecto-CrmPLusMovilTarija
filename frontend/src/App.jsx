@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import LandingPage from './components/LandingPage';
 import './index.css';
 
 function ProtectedRoute({ children }) {
@@ -45,6 +46,7 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/login"
         element={
@@ -61,7 +63,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
