@@ -21,6 +21,20 @@ export default function ChoferesManager({ viewMode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // New incidentes and tab states
+  const [activeTab, setActiveTab] = useState('docs');
+  const [incidentes, setIncidentes] = useState([]);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [isSavingIncident, setIsSavingIncident] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({
+    tipo: 'falta_uniforme',
+    descripcion: '',
+    gravedad: 'leve',
+    fecha: new Date().toISOString().split('T')[0],
+    aplica_multa: false,
+    monto_multa: ''
+  });
+
   // Modals state
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [showDocModal, setShowDocModal] = useState(false);
@@ -55,8 +69,10 @@ export default function ChoferesManager({ viewMode }) {
   useEffect(() => {
     if (selectedChofer) {
       fetchDocumentos(selectedChofer.id);
+      fetchIncidentes(selectedChofer.id);
     } else {
       setDocumentos([]);
+      setIncidentes([]);
     }
   }, [selectedChofer]);
 
@@ -80,6 +96,95 @@ export default function ChoferesManager({ viewMode }) {
       setDocumentos(data);
     } catch (err) {
       console.error('Error fetching documents:', err);
+    }
+  };
+
+  const fetchIncidentes = async (choferId) => {
+    try {
+      const data = await api.get(`/api/choferes/${choferId}/incidentes`);
+      setIncidentes(data);
+    } catch (err) {
+      console.error('Error fetching incidents:', err);
+    }
+  };
+
+  const handleAddIncident = async (e) => {
+    e.preventDefault();
+    if (!incidentForm.descripcion.trim()) {
+      alert('Por favor ingresa una descripción para el incidente.');
+      return;
+    }
+    setIsSavingIncident(true);
+    try {
+      const created = await api.post(`/api/choferes/${selectedChofer.id}/incidentes`, incidentForm);
+      setIncidentes([created, ...incidentes]);
+      setShowIncidentModal(false);
+      setIncidentForm({
+        tipo: 'falta_uniforme',
+        descripcion: '',
+        gravedad: 'leve',
+        fecha: new Date().toISOString().split('T')[0],
+        aplica_multa: false,
+        monto_multa: ''
+      });
+    } catch (err) {
+      alert(`Error al registrar incidente: ${err.message}`);
+    } finally {
+      setIsSavingIncident(false);
+    }
+  };
+
+  const handlePayFine = async (incidenteId) => {
+    if (!window.confirm('¿Confirmar el cobro de esta multa y registrar el ingreso en caja?')) return;
+    try {
+      const result = await api.post(`/api/choferes/${selectedChofer.id}/incidentes/${incidenteId}/pagar`);
+      alert(result.message || 'Multa pagada con éxito.');
+      setIncidentes(incidentes.map(inc => inc.id === incidenteId ? { ...inc, estado_multa: 'pagado' } : inc));
+    } catch (err) {
+      alert(`Error al pagar la multa: ${err.message}`);
+    }
+  };
+
+  const handleDeleteIncident = async (incidenteId) => {
+    if (!window.confirm('¿Está seguro de eliminar este incidente del historial del chofer?')) return;
+    try {
+      await api.delete(`/api/choferes/${selectedChofer.id}/incidentes/${incidenteId}`);
+      setIncidentes(incidentes.filter(inc => inc.id !== incidenteId));
+    } catch (err) {
+      alert(`Error al eliminar incidente: ${err.message}`);
+    }
+  };
+
+  const getIncidentLabel = (tipo) => {
+    const labels = {
+      accidente: 'Accidente de Tránsito',
+      falta_uniforme: 'Falta de Uniforme',
+      retraso_turno: 'Retraso de Turno',
+      queja_cliente: 'Queja de Cliente',
+      mal_comportamiento: 'Mal Comportamiento',
+      limpieza_vehiculo: 'Limpieza de Vehículo',
+      otro: 'Otro Incidente'
+    };
+    return labels[tipo] || tipo.toUpperCase();
+  };
+
+  const getGravedadBadgeClass = (gravedad) => {
+    switch (gravedad) {
+      case 'grave': return 'badge--red';
+      case 'moderada': return 'badge--yellow';
+      default: return 'badge--green';
+    }
+  };
+
+  const getIncidentIcon = (tipo, severity) => {
+    switch (tipo) {
+      case 'accidente': return '💥';
+      case 'falta_uniforme': return '👔';
+      case 'retraso_turno': return '⏱️';
+      case 'queja_cliente': return '🗣️';
+      case 'mal_comportamiento': return '😠';
+      case 'limpieza_vehiculo': return '🧹';
+      default: return '⚠️';
     }
   };
 
@@ -332,45 +437,131 @@ export default function ChoferesManager({ viewMode }) {
                   )}
                 </div>
 
-                {/* Documents Section */}
-                <div className="chofer-detail__section">
-                  <div className="chofer-section-header">
-                    <h4>Vencimiento de Documentación</h4>
-                    <button className="btn btn--secondary btn--sm" onClick={() => setShowDocModal(true)}>
-                      <HiOutlinePlus style={{ marginRight: 4 }} />
-                      Agregar Doc
-                    </button>
-                  </div>
-                  
-                  <div className="documentos-list">
-                    {documentos.map((doc) => (
-                      <div key={doc.id} className="doc-item glass-card">
-                        <div className="doc-item__icon">
-                          <HiOutlineDocumentText />
-                        </div>
-                        <div className="doc-item__content">
-                          <div className="doc-item__header">
-                            <span className="doc-item__title">{getDocLabel(doc.tipo)}</span>
-                            <span className={`badge ${getDocBadgeClass(doc.estado)}`}>
-                              {doc.estado.replace('_', ' ').toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="doc-item__dates">
-                            <span>Vence: <strong>{doc.fecha_vencimiento || 'Sin límite'}</strong></span>
-                          </div>
-                        </div>
-                        <button className="doc-item__delete" onClick={() => handleDeleteDoc(doc.id)}>
-                          <HiOutlineTrash />
-                        </button>
-                      </div>
-                    ))}
-                    {documentos.length === 0 && (
-                      <div className="documentos-empty">
-                        No hay documentos registrados para este chofer.
-                      </div>
-                    )}
-                  </div>
+                {/* Tab Navigation */}
+                <div className="chofer-detail__tabs">
+                  <button 
+                    className={`chofer-detail__tab ${activeTab === 'docs' ? 'chofer-detail__tab--active' : ''}`}
+                    onClick={() => setActiveTab('docs')}
+                  >
+                    Documentos
+                  </button>
+                  <button 
+                    className={`chofer-detail__tab ${activeTab === 'incidents' ? 'chofer-detail__tab--active' : ''}`}
+                    onClick={() => setActiveTab('incidents')}
+                  >
+                    Incidentes y Multas
+                  </button>
                 </div>
+
+                {/* Tab Content: Documents */}
+                {activeTab === 'docs' && (
+                  <div className="chofer-detail__section animate-fade-in">
+                    <div className="chofer-section-header">
+                      <h4>Vencimiento de Documentación</h4>
+                      <button className="btn btn--secondary btn--sm" onClick={() => setShowDocModal(true)}>
+                        <HiOutlinePlus style={{ marginRight: 4 }} />
+                        Agregar Doc
+                      </button>
+                    </div>
+                    
+                    <div className="documentos-list">
+                      {documentos.map((doc) => (
+                        <div key={doc.id} className="doc-item glass-card">
+                          <div className="doc-item__icon">
+                            <HiOutlineDocumentText />
+                          </div>
+                          <div className="doc-item__content">
+                            <div className="doc-item__header">
+                              <span className="doc-item__title">{getDocLabel(doc.tipo)}</span>
+                              <span className={`badge ${getDocBadgeClass(doc.estado)}`}>
+                                {doc.estado.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="doc-item__dates">
+                              <span>Vence: <strong>{doc.fecha_vencimiento || 'Sin límite'}</strong></span>
+                            </div>
+                          </div>
+                          <button className="doc-item__delete" onClick={() => handleDeleteDoc(doc.id)}>
+                            <HiOutlineTrash />
+                          </button>
+                        </div>
+                      ))}
+                      {documentos.length === 0 && (
+                        <div className="documentos-empty">
+                          No hay documentos registrados para este chofer.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab Content: Incidents */}
+                {activeTab === 'incidents' && (
+                  <div className="chofer-detail__section animate-fade-in">
+                    <div className="chofer-section-header">
+                      <h4>Historial de Incidentes y Multas</h4>
+                      <button className="btn btn--secondary btn--sm" onClick={() => setShowIncidentModal(true)}>
+                        <HiOutlinePlus style={{ marginRight: 4 }} />
+                        Registrar Incidente
+                      </button>
+                    </div>
+
+                    <div className="incidentes-list">
+                      {incidentes.map((inc) => (
+                        <div key={inc.id} className="incident-item glass-card">
+                          <div className="incident-item__main">
+                            <div className={`incident-item__icon incident-item__icon--${inc.gravedad}`}>
+                              {getIncidentIcon(inc.tipo, inc.gravedad)}
+                            </div>
+                            <div className="incident-item__content">
+                              <div className="incident-item__header">
+                                <div className="incident-item__title-group">
+                                  <span className="incident-item__title">{getIncidentLabel(inc.tipo)}</span>
+                                  <span className={`badge ${getGravedadBadgeClass(inc.gravedad)}`}>
+                                    {inc.gravedad.toUpperCase()}
+                                  </span>
+                                </div>
+                                <span className="incident-item__date">{inc.fecha}</span>
+                              </div>
+                              <p className="incident-item__desc">{inc.descripcion}</p>
+
+                              {inc.estado_multa && inc.estado_multa !== 'no_aplica' && (
+                                <div className="incident-item__fine">
+                                  <div className="incident-item__fine-info">
+                                    <span className="incident-item__fine-label">Multa:</span>
+                                    <span className="incident-item__fine-amount">{parseFloat(inc.monto_multa).toFixed(2)} BOB</span>
+                                    <span className={`incident-item__fine-status incident-item__fine-status--${inc.estado_multa}`}>
+                                      {inc.estado_multa.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  {inc.estado_multa === 'pendiente' && (
+                                    <div className="incident-item__actions">
+                                      <button 
+                                        className="btn btn--primary btn--sm"
+                                        onClick={() => handlePayFine(inc.id)}
+                                        style={{ padding: '4px 10px', fontSize: '11px' }}
+                                      >
+                                        Cobrar Multa
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <button className="incident-item__delete" onClick={() => handleDeleteIncident(inc.id)}>
+                              <HiOutlineTrash />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {incidentes.length === 0 && (
+                        <div className="incidentes-empty">
+                          No hay incidentes registrados para este chofer.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="choferes-empty-selection">
@@ -553,7 +744,7 @@ export default function ChoferesManager({ viewMode }) {
               <div className="form-group">
                 <label>Notas adicionales</label>
                 <textarea 
-                  value={docForm.notas} 
+                  value={docForm.notes} 
                   onChange={e => setDocForm({...docForm, notas: e.target.value})} 
                   rows={2}
                 />
@@ -564,6 +755,106 @@ export default function ChoferesManager({ viewMode }) {
                 </button>
                 <button type="submit" className="btn btn--primary">
                   Agregar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Incident Modal */}
+      {showIncidentModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-card" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h3>Registrar Incidente</h3>
+              <button className="modal-close" onClick={() => setShowIncidentModal(false)}>
+                <HiOutlineX />
+              </button>
+            </div>
+            <form onSubmit={handleAddIncident} className="modal-form">
+              <div className="form-group">
+                <label>Tipo de Incidente</label>
+                <select 
+                  value={incidentForm.tipo} 
+                  onChange={e => setIncidentForm({...incidentForm, tipo: e.target.value})}
+                >
+                  <option value="falta_uniforme">Falta de Uniforme</option>
+                  <option value="retraso_turno">Retraso de Turno</option>
+                  <option value="limpieza_vehiculo">Limpieza de Vehículo</option>
+                  <option value="queja_cliente">Queja de Cliente</option>
+                  <option value="mal_comportamiento">Mal Comportamiento</option>
+                  <option value="accidente">Accidente de Tránsito</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+
+              <div className="form-grid" style={{ gap: '12px' }}>
+                <div className="form-group">
+                  <label>Gravedad</label>
+                  <select 
+                    value={incidentForm.gravedad} 
+                    onChange={e => setIncidentForm({...incidentForm, gravedad: e.target.value})}
+                  >
+                    <option value="leve">Leve</option>
+                    <option value="moderada">Moderada</option>
+                    <option value="grave">Grave</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Fecha</label>
+                  <input 
+                    type="date" 
+                    value={incidentForm.fecha} 
+                    onChange={e => setIncidentForm({...incidentForm, fecha: e.target.value})} 
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Detalle / Descripción</label>
+                <textarea 
+                  value={incidentForm.descripcion} 
+                  onChange={e => setIncidentForm({...incidentForm, descripcion: e.target.value})} 
+                  placeholder="Detalla lo sucedido..."
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div className="form-group checkbox-group" style={{ margin: '8px 0' }}>
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={incidentForm.aplica_multa} 
+                    onChange={e => setIncidentForm({...incidentForm, aplica_multa: e.target.checked})} 
+                  />
+                  Aplica Multa Económica
+                </label>
+              </div>
+
+              {incidentForm.aplica_multa && (
+                <div className="form-group animate-fade-in">
+                  <label>Monto de la Multa (BOB)</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    step="1"
+                    placeholder="Monto en Bolivianos (ej. 30)"
+                    value={incidentForm.monto_multa} 
+                    onChange={e => setIncidentForm({...incidentForm, monto_multa: e.target.value})} 
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="modal-actions">
+                <button type="button" className="btn btn--secondary" onClick={() => setShowIncidentModal(false)} disabled={isSavingIncident}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn--primary" disabled={isSavingIncident}>
+                  {isSavingIncident ? 'Registrando...' : 'Registrar'}
                 </button>
               </div>
             </form>

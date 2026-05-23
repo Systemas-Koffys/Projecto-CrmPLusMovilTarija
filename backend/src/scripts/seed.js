@@ -8,6 +8,7 @@ async function seed() {
     // 1. Limpiar transacciones antiguas
     console.log('🧹 Limpiando tablas transaccionales...');
     await supabase.from('asistencias').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('incidentes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('cobros').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('servicios').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('documentos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -360,6 +361,73 @@ async function seed() {
 
     if (docErr) throw docErr;
     console.log(`✅ Licencias y SOAT cargados con estados válidos/por vencer/vencidos.`);
+
+    // 11. Incidentes de Choferes
+    console.log('⚠️ Generando incidentes y multas de demostración...');
+    const incidentesData = [];
+    
+    const incidentesTemplates = [
+      { tipo: 'falta_uniforme', gravedad: 'leve', desc: 'No portaba la polera distintiva de la empresa durante el turno.', multa: 20.00, estado: 'pendiente' },
+      { tipo: 'retraso_turno', gravedad: 'leve', desc: 'Llegada tarde a la marcación de ingreso por 15 minutos.', multa: 10.00, estado: 'pagado' },
+      { tipo: 'limpieza_vehiculo', gravedad: 'moderada', desc: 'Interiores con suciedad y olores reportados por pasajero.', multa: 30.00, estado: 'pendiente' },
+      { tipo: 'queja_cliente', gravedad: 'moderada', desc: 'Conducir con exceso de velocidad en zona escolar y discutir con el pasajero.', multa: 50.00, estado: 'pendiente' },
+      { tipo: 'mal_comportamiento', gravedad: 'grave', desc: 'Maltrato verbal a la operadora al recibir asignación radial.', multa: 50.00, estado: 'pagado' },
+      { tipo: 'accidente', gravedad: 'grave', desc: 'Colisión leve en paragolpe delantero por distracción. Sin heridos.', multa: 0.00, estado: 'no_aplica' },
+      { tipo: 'falta_uniforme', gravedad: 'leve', desc: 'Uso de calzado no autorizado (chinelas) en horario de servicio.', multa: 20.00, estado: 'pendiente' },
+      { tipo: 'otro', gravedad: 'moderada', desc: 'Desvío de ruta sin reportar a la operadora central por radio.', multa: 30.00, estado: 'pagado' }
+    ];
+
+    incidentesTemplates.forEach((temp, idx) => {
+      const chf = choferes[idx % choferes.length];
+      const date = new Date();
+      date.setDate(now.getDate() - (idx * 3 + 1));
+
+      incidentesData.push({
+        chofer_id: chf.id,
+        tipo: temp.tipo,
+        descripcion: temp.desc,
+        gravedad: temp.gravedad,
+        fecha: date.toISOString().split('T')[0],
+        monto_multa: temp.multa,
+        estado_multa: temp.estado,
+        created_at: date.toISOString()
+      });
+    });
+
+    const { data: insertedIncidents, error: incErr } = await supabase
+      .from('incidentes')
+      .insert(incidentesData)
+      .select();
+
+    if (incErr) throw incErr;
+    console.log(`✅ ${insertedIncidents.length} incidentes y multas de prueba creados.`);
+
+    const paidIncidentCobros = insertedIncidents
+      .filter(inc => inc.estado_multa === 'pagado')
+      .map((inc, i) => {
+        const date = new Date(inc.created_at);
+        date.setHours(10, 0, 0);
+        
+        const matchingTurno = turnos.find(t => t.fecha === inc.fecha) || turnos[0];
+        
+        return {
+          chofer_id: inc.chofer_id,
+          operadora_id: matchingTurno.operadora_id,
+          turno_id: matchingTurno.id,
+          concepto: 'Multa',
+          monto: inc.monto_multa,
+          fecha_hora: date.toISOString(),
+          notes: `Pago de multa por incidente (${inc.tipo}): ${inc.descripcion}`
+        };
+      });
+
+    if (paidIncidentCobros.length > 0) {
+      const { error: paidCobErr } = await supabase
+        .from('cobros')
+        .insert(paidIncidentCobros);
+      if (paidCobErr) throw paidCobErr;
+      console.log(`✅ ${paidIncidentCobros.length} cobros específicos de multas pagadas insertados en caja.`);
+    }
 
     console.log('🌟 ¡DATOS DE DEMOSTRACIÓN CARGADOS CON ÉXITO! El sistema está vivo y listo para explorar.');
   } catch (err) {

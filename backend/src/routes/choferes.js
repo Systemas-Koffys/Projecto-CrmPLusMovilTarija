@@ -276,4 +276,183 @@ router.delete('/:id/documentos/:docId', verifyToken, verifyRole('admin', 'person
   }
 });
 
+/**
+ * GET /api/choferes/:id/incidentes
+ * Fetch all incidents for a driver
+ */
+router.get('/:id/incidentes', verifyToken, verifyRole('admin', 'personal', 'operadora', 'contadora'), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('incidentes')
+      .select('*')
+      .eq('chofer_id', id)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error(`Error fetching incidents for driver ${id}:`, err.message);
+    res.status(500).json({ error: 'Error al obtener incidentes del chofer' });
+  }
+});
+
+/**
+ * POST /api/choferes/:id/incidentes
+ * Add a new incident for a driver
+ */
+router.post('/:id/incidentes', verifyToken, verifyRole('admin', 'personal', 'operadora'), async (req, res) => {
+  const { id } = req.params;
+  const { tipo, descripcion, gravedad, fecha, monto_multa, aplica_multa } = req.body;
+
+  try {
+    const estado_multa = aplica_multa && parseFloat(monto_multa) > 0 ? 'pendiente' : 'no_aplica';
+    
+    const { data, error } = await supabase
+      .from('incidentes')
+      .insert({
+        chofer_id: id,
+        tipo,
+        descripcion,
+        gravedad,
+        fecha: fecha || new Date().toISOString().split('T')[0],
+        monto_multa: aplica_multa ? parseFloat(monto_multa) : 0.00,
+        estado_multa
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) {
+    console.error(`Error adding incident for driver ${id}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/choferes/:id/incidentes/:incidenteId
+ * Delete a driver's incident
+ */
+router.delete('/:id/incidentes/:incidenteId', verifyToken, verifyRole('admin', 'personal'), async (req, res) => {
+  const { incidenteId } = req.params;
+  try {
+    const { error } = await supabase
+      .from('incidentes')
+      .delete()
+      .eq('id', incidenteId);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'Incidente eliminado con éxito' });
+  } catch (err) {
+    console.error(`Error deleting incident ${incidenteId}:`, err.message);
+    res.status(500).json({ error: 'Error al eliminar el incidente' });
+  }
+});
+
+/**
+ * POST /api/choferes/:id/incidentes/:incidenteId/pagar
+ * Pay a driver's fine. Updates state to 'pagado' and registers a record in cobros.
+ */
+router.post('/:id/incidentes/:incidenteId/pagar', verifyToken, verifyRole('admin', 'contadora', 'operadora'), async (req, res) => {
+  const { id, incidenteId } = req.params;
+  
+  try {
+    // 1. Get the incident details
+    const { data: incidente, error: incErr } = await supabase
+      .from('incidentes')
+      .select('*')
+      .eq('id', incidenteId)
+      .single();
+      
+    if (incErr) throw incErr;
+    if (!incidente) {
+      return res.status(404).json({ error: 'Incidente no encontrado' });
+    }
+    
+    if (incidente.estado_multa !== 'pendiente') {
+      return res.status(400).json({ error: 'El incidente no tiene una multa pendiente de pago' });
+    }
+    
+    // 2. Get active shift (turno) to associate with this cobro
+    const { data: activeTurno } = await supabase
+      .from('turnos')
+      .select('id, operadora_id')
+      .eq('estado', 'activo')
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let operadoraId = activeTurno?.operadora_id || null;
+    let turnoId = activeTurno?.id || null;
+
+    if (!operadoraId) {
+      const { data: firstOp } = await supabase
+        .from('operadoras')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      if (firstOp) {
+        operadoraId = firstOp.id;
+      }
+    }
+
+    if (!turnoId) {
+      const { data: lastShift } = await supabase
+        .from('turnos')
+        .select('id')
+        .order('fecha', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastShift) {
+        turnoId = lastShift.id;
+      }
+    }
+
+    // 3. Update the incident status to 'pagado'
+    const { data: updatedInc, error: updateErr } = await supabase
+      .from('incidentes')
+      .update({
+        estado_multa: 'pagado',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', incidenteId)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // 4. Create the corresponding cobro record
+    const { error: cobroErr } = await supabase
+      .from('cobros')
+      .insert({
+        chofer_id: id,
+        operadora_id: operadoraId,
+        turno_id: turnoId,
+        concepto: 'Multa',
+        monto: incidente.monto_multa,
+        fecha_hora: new Date().toISOString(),
+        notas: `Pago de multa por incidente (${incidente.tipo}): ${incidente.descripcion}`
+      });
+
+    if (cobroErr) {
+      await supabase
+        .from('incidentes')
+        .update({ estado_multa: 'pendiente' })
+        .eq('id', incidenteId);
+      throw cobroErr;
+    }
+
+    res.json({
+      success: true,
+      message: 'Multa pagada y registrada en caja con éxito',
+      incidente: updatedInc
+    });
+  } catch (err) {
+    console.error(`Error paying fine for incident ${incidenteId}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

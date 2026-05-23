@@ -132,6 +132,20 @@ CREATE TABLE IF NOT EXISTS asistencias (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 10. TABLA DE INCIDENTES Y MULTAS DE CHOFERES
+CREATE TABLE IF NOT EXISTS incidentes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  chofer_id UUID REFERENCES choferes(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL CHECK (tipo IN ('accidente', 'falta_uniforme', 'retraso_turno', 'queja_cliente', 'mal_comportamiento', 'limpieza_vehiculo', 'otro')),
+  descripcion TEXT NOT NULL,
+  gravedad TEXT NOT NULL CHECK (gravedad IN ('leve', 'moderada', 'grave')),
+  fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+  monto_multa DECIMAL(10,2) DEFAULT 0.00,
+  estado_multa TEXT CHECK (estado_multa IN ('pendiente', 'pagado', 'no_aplica')) DEFAULT 'no_aplica',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ═══════════════════════════════════════════════════════════════
 -- ÍNDICES PARA PERFORMANCE
 -- ═══════════════════════════════════════════════════════════════
@@ -145,6 +159,8 @@ CREATE INDEX IF NOT EXISTS idx_turnos_fecha ON turnos(fecha);
 CREATE INDEX IF NOT EXISTS idx_turnos_estado ON turnos(estado);
 CREATE INDEX IF NOT EXISTS idx_documentos_vencimiento ON documentos(fecha_vencimiento);
 CREATE INDEX IF NOT EXISTS idx_choferes_estado ON choferes(estado);
+CREATE INDEX IF NOT EXISTS idx_incidentes_chofer ON incidentes(chofer_id);
+CREATE INDEX IF NOT EXISTS idx_incidentes_fecha ON incidentes(fecha);
 
 -- ═══════════════════════════════════════════════════════════════
 -- DATOS DE PRUEBA
@@ -186,6 +202,7 @@ ALTER TABLE servicios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cobros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE documentos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE asistencias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE incidentes ENABLE ROW LEVEL SECURITY;
 
 -- Política para permitir acceso con service_role key (backend)
 CREATE POLICY "Service role full access" ON users_roles FOR ALL USING (true) WITH CHECK (true);
@@ -197,3 +214,4 @@ CREATE POLICY "Service role full access" ON servicios FOR ALL USING (true) WITH 
 CREATE POLICY "Service role full access" ON cobros FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Service role full access" ON documentos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Service role full access" ON asistencias FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON incidentes FOR ALL USING (true) WITH CHECK (true);
