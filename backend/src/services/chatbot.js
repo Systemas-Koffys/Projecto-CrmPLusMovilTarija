@@ -1,7 +1,8 @@
 const supabase = require('../config/supabase');
+const { analyzeChat } = require('./gemini');
 
 // Memory state storage for conversations
-// Structure: { [phoneNumber]: { state: 'awaiting_info'|'awaiting_confirm', address: string, gps: {lat, lng}, lastActive: timestamp } }
+// Structure: { [phoneNumber]: { history: [{role, text}], address, reference, passengerName, gps: {lat, lng}, lastActive } }
 const chatStates = {};
 const STATE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes inactivity timeout
 
@@ -18,35 +19,26 @@ function cleanExpiredStates() {
 }
 
 /**
- * Main chatbot message processor
+ * Main chatbot message processor integrated with Google Gemini AI
  */
 async function processChatbotMessage(lineaKey, client, msg) {
   cleanExpiredStates();
 
   const fromNumber = msg.from.split('@')[0];
   const msgType = msg.type;
-  const msgText = (msg.body || '').trim();
-
+  
   // Ignore group chats and system broadcast messages
   if (msg.from.includes('@g.us') || msg.from === 'status@broadcast') {
     return;
   }
 
-  // Fetch contact name
+  // Retrieve contact name
   let contactName = 'Cliente WhatsApp';
   try {
     const contact = await msg.getContact();
     contactName = contact.pushname || contact.name || contactName;
   } catch (err) {
     console.warn(`Could not get contact details for ${fromNumber}:`, err.message);
-  }
-
-  // 1. Check if user wants to cancel the current flow
-  const isCancel = /^(cancelar|salir|no|detener|cancel)$/i.test(msgText);
-  if (isCancel && chatStates[fromNumber]) {
-    delete chatStates[fromNumber];
-    await msg.reply('❌ Solicitud cancelada. Si necesitas un móvil más adelante, solo escríbenos. ¡Que tengas un buen día! 👋');
-    return;
   }
 
   // Get or initialize state
@@ -59,69 +51,74 @@ async function processChatbotMessage(lineaKey, client, msg) {
     userState = null;
   }
 
-  // 2. Handle GPS Location directly (at any stage, even first message)
+  if (!userState) {
+    userState = {
+      history: [],
+      gps: null,
+      address: null,
+      passengerName: null,
+      reference: null,
+      lastActive: now
+    };
+    chatStates[fromNumber] = userState;
+  }
+
+  // 1. Intercept GPS Location directly (highest priority)
   const isGps = msgType === 'location' || (msg.location && msg.location.latitude);
+  let msgText = (msg.body || '').trim();
+
   if (isGps) {
     const lat = msg.location.latitude;
     const lng = msg.location.longitude;
 
-    chatStates[fromNumber] = {
-      state: 'awaiting_confirm',
-      address: '[Ubicación GPS Compartida]',
-      gps: { lat, lng },
-      lastActive: Date.now()
-    };
+    userState.gps = { lat, lng };
+    userState.address = '[Ubicación GPS Compartida]';
+    userState.lastActive = Date.now();
 
-    await msg.reply('📍 Recibimos tu ubicación GPS con éxito.\n\n¿Confirmas tu solicitud de móvil en esta ubicación?\n\nResponde *SÍ* para confirmar o escribe una dirección de referencia.');
+    // Inject GPS event into history so Gemini understands what happened
+    userState.history.push({
+      role: 'user',
+      text: '[Compartió su ubicación GPS]'
+    });
+
+    // We let Gemini generate the response by passing this simulated message
+    msgText = '[Ubicación GPS recibida. Pregúntame mi nombre para proceder con la confirmación de mi móvil]';
+  }
+
+  // 2. Query Google Gemini AI
+  console.log(`[Chatbot - ${fromNumber}] Querying Gemini with message: "${msgText}"`);
+  const aiResult = await analyzeChat(msgText, userState.history);
+  console.log(`[Chatbot - ${fromNumber}] Gemini JSON response:`, JSON.stringify(aiResult));
+
+  const { replyText, extractedData } = aiResult;
+
+  // Update extracted properties in session state
+  if (extractedData) {
+    if (extractedData.direccion) userState.address = extractedData.direccion;
+    if (extractedData.referencia) userState.reference = extractedData.referencia;
+    if (extractedData.nombrePasajero) userState.passengerName = extractedData.nombrePasajero;
+  }
+
+  // 3. Handle Cancel intent
+  if (extractedData?.intentCancelar === true) {
+    console.log(`[Chatbot - ${fromNumber}] Intent: CANCEL`);
+    delete chatStates[fromNumber];
+    await msg.reply(replyText || '❌ Tu solicitud ha sido cancelada. Si nos necesitas más tarde, no dudes en volver a escribirnos. ¡Que tengas un excelente día! 👋');
     return;
   }
 
-  // 3. State Machine Flow
-  if (!userState) {
-    // Welcome / Initial State
-    chatStates[fromNumber] = {
-      state: 'awaiting_info',
-      address: null,
-      gps: null,
-      lastActive: Date.now()
-    };
-
-    await msg.reply(
-      `¡Hola *${contactName}*! 📡 Bienvenido a *Plus Móvil Tarija*.\n\n` +
-      `Para solicitar un radio móvil de inmediato, por favor envíanos:\n` +
-      `1️⃣ Tu *Ubicación GPS actual* (Recomendado 📍)\n` +
-      `2️⃣ O escribe tu *Dirección exacta* (Ej: Calle Cochabamba entre Sucre y Gral. Trigo).\n\n` +
-      `*Escribe CANCELAR en cualquier momento si deseas salir.*`
-    );
-  } else if (userState.state === 'awaiting_info') {
-    // User sent text address
-    if (msgText.length < 5) {
-      await msg.reply('⚠️ Por favor ingresa una dirección más específica (ej. nombre de calle y referencias) para que el móvil pueda ubicarte fácilmente.');
-      userState.lastActive = Date.now();
-      return;
-    }
-
-    chatStates[fromNumber] = {
-      state: 'awaiting_confirm',
-      address: msgText,
-      gps: null,
-      lastActive: Date.now()
-    };
-
-    await msg.reply(
-      `Confirmemos tu dirección:\n` +
-      `🏠 *${msgText}*\n\n` +
-      `¿Es correcto?\n` +
-      `Responde *SÍ* para confirmar y buscar un móvil, o escribe una nueva dirección si deseas corregirla.`
-    );
-  } else if (userState.state === 'awaiting_confirm') {
-    // User is confirming the address/GPS
-    const isConfirm = /^(si|sí|ok|confirmar|correcto|yes|s)$/i.test(msgText);
+  // 4. Handle Confirm intent
+  if (extractedData?.intentConfirmar === true) {
+    console.log(`[Chatbot - ${fromNumber}] Intent: CONFIRM. Address: ${userState.address || 'GPS'}, Name: ${userState.passengerName}`);
     
-    if (isConfirm) {
-      // REGISTER THE REQUEST IN SUPABASE!
+    // Check if we have the minimum requirements (address or GPS + name)
+    const hasAddress = userState.gps || (userState.address && userState.address !== '[Ubicación GPS Compartida]');
+    const nameToUse = userState.passengerName || contactName;
+
+    if (hasAddress) {
+      // REGISTER THE REQUEST IN DATABASE
       try {
-        // Register customer first if they don't exist
+        // Register client in Supabase if they do not exist
         let clienteId = null;
         const { data: clientData, error: clientErr } = await supabase
           .from('clientes')
@@ -136,7 +133,7 @@ async function processChatbotMessage(lineaKey, client, msg) {
             .from('clientes')
             .insert({
               numero_whatsapp: fromNumber,
-              nombre: contactName,
+              nombre: nameToUse,
             })
             .select('id')
             .single();
@@ -145,6 +142,19 @@ async function processChatbotMessage(lineaKey, client, msg) {
           clienteId = newClient.id;
         } else {
           clienteId = clientData.id;
+          // Update client name if we got a more specific passenger name
+          if (userState.passengerName && clientData.nombre !== userState.passengerName) {
+            await supabase
+              .from('clientes')
+              .update({ nombre: userState.passengerName })
+              .eq('id', clienteId);
+          }
+        }
+
+        // Format message field for the operator panel
+        let fullDescription = userState.address;
+        if (userState.reference) {
+          fullDescription += ` (Ref: ${userState.reference})`;
         }
 
         // Insert WhatsApp request as pending
@@ -153,8 +163,8 @@ async function processChatbotMessage(lineaKey, client, msg) {
           .insert({
             linea: lineaKey,
             cliente_telefono: fromNumber,
-            cliente_nombre: contactName,
-            mensaje: userState.address,
+            cliente_nombre: nameToUse,
+            mensaje: fullDescription || 'Pedido de móvil por WhatsApp',
             gps_latitud: userState.gps ? userState.gps.lat : null,
             gps_longitud: userState.gps ? userState.gps.lng : null,
             estado: 'pendiente'
@@ -162,30 +172,43 @@ async function processChatbotMessage(lineaKey, client, msg) {
 
         if (insertErr) throw insertErr;
 
-        // Clear state
+        // Clear session state
         delete chatStates[fromNumber];
 
-        await msg.reply('🔎 ¡Solicitud registrada con éxito! Estamos buscando un móvil disponible cerca de ti. Te notificaremos en este chat en cuanto el conductor sea asignado. ¡Muchas gracias! 🚗💨');
+        await msg.reply(replyText || '🔎 ¡Solicitud registrada con éxito! Estamos buscando un móvil disponible cerca de ti. Te notificaremos en este chat en cuanto el conductor sea asignado. ¡Muchas gracias! 🚗💨');
+        return;
+
       } catch (err) {
         console.error('Error saving chatbot request to database:', err.message);
-        await msg.reply('⚠️ Ocurrió un error al procesar tu solicitud. Por favor intenta nuevamente o llama directamente a la central.');
+        await msg.reply('⚠️ Ocurrió un inconveniente técnico al guardar tu solicitud. Por favor, reintenta o comunícate directamente con la central.');
+        return;
       }
     } else {
-      // User sent text instead of confirming, treat it as a correction
-      chatStates[fromNumber] = {
-        state: 'awaiting_confirm',
-        address: msgText,
-        gps: null,
-        lastActive: Date.now()
-      };
-
-      await msg.reply(
-        `Dirección actualizada:\n` +
-        `🏠 *${msgText}*\n\n` +
-        `¿Confirmas este pedido? Responde *SÍ* para confirmar o ingresa otra dirección.`
-      );
+      // Missing info, override confirmation intent and let the conversation request it
+      console.log(`[Chatbot - ${fromNumber}] Confirm intent but missing address/GPS. Overriding.`);
     }
   }
+
+  // 5. Standard conversation turn: Save to history and send reply
+  userState.history.push({
+    role: 'user',
+    text: isGps ? '[Ubicación GPS Compartida]' : msgText
+  });
+  
+  userState.history.push({
+    role: 'model',
+    text: replyText
+  });
+
+  // Keep history size reasonable (last 8 turns) to save token window space
+  if (userState.history.length > 8) {
+    userState.history = userState.history.slice(-8);
+  }
+
+  userState.lastActive = Date.now();
+
+  // Send the AI generated response back
+  await msg.reply(replyText);
 }
 
 module.exports = {
