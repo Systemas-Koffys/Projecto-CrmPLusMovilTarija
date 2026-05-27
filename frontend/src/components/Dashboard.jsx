@@ -10,6 +10,7 @@ import CobrosManager from './CobrosManager';
 import ReportesManager from './ReportesManager';
 import AnalyticsManager from './AnalyticsManager';
 import MapaManager from './MapaManager';
+import MovilesManager from './MovilesManager';
 import './Dashboard.css';
 
 const roleConfig = {
@@ -101,7 +102,7 @@ export default function Dashboard() {
   });
 
   const handleActionClick = (targetTab) => {
-    const activeTabs = ['whatsapp', 'turno', 'turnos', 'choferes', 'personal', 'cobros', 'finanzas', 'reportes', 'analytics', 'mapa'];
+    const activeTabs = ['whatsapp', 'turno', 'turnos', 'choferes', 'personal', 'cobros', 'finanzas', 'reportes', 'analytics', 'mapa', 'moviles'];
     if (activeTabs.includes(targetTab)) {
       setActiveSection(targetTab);
     } else {
@@ -129,6 +130,8 @@ export default function Dashboard() {
         return <AnalyticsManager />;
       case 'mapa':
         return <MapaManager />;
+      case 'moviles':
+        return <MovilesManager />;
       case 'home':
       default:
         return (
@@ -173,7 +176,7 @@ export default function Dashboard() {
               <h3 className="dashboard-section__title">Acciones rápidas</h3>
               <div className="dashboard-actions">
                 {config.quickActions.map((action, i) => {
-                  const isActionEnabled = ['whatsapp', 'turno', 'turnos', 'choferes', 'personal', 'cobros', 'finanzas', 'reportes', 'analytics', 'mapa'].includes(action.targetTab);
+                  const isActionEnabled = ['whatsapp', 'turno', 'turnos', 'choferes', 'personal', 'cobros', 'finanzas', 'reportes', 'analytics', 'mapa', 'moviles'].includes(action.targetTab);
                   return (
                     <button
                       key={i}

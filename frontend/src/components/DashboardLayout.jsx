@@ -24,7 +24,7 @@ const menuConfig = {
     { icon: HiOutlineHome, label: 'Inicio', id: 'home' },
     { icon: HiOutlineChatAlt2, label: 'WhatsApp Gateway', id: 'whatsapp' }, // No badge, now active in Phase 2
     { icon: HiOutlineClipboardList, label: 'Turno Activo', id: 'turno' }, // Active in Phase 2
-    { icon: HiOutlineTruck, label: 'Móviles', id: 'moviles', badge: 'Próximo' },
+    { icon: HiOutlineTruck, label: 'Móviles', id: 'moviles' },
     { icon: HiOutlineCash, label: 'Cobros', id: 'cobros' },
   ],
   contadora: [
@@ -37,7 +37,7 @@ const menuConfig = {
     { icon: HiOutlineHome, label: 'Inicio', id: 'home' },
     { icon: HiOutlineChatAlt2, label: 'WhatsApp Gateway', id: 'whatsapp' }, // Active in Phase 2
     { icon: HiOutlineClipboardList, label: 'Turnos', id: 'turnos' }, // Active in Phase 2
-    { icon: HiOutlineTruck, label: 'Móviles', id: 'moviles', badge: 'Próximo' },
+    { icon: HiOutlineTruck, label: 'Móviles', id: 'moviles' },
     { icon: HiOutlineCash, label: 'Cobros', id: 'cobros' },
     { icon: HiOutlineUsers, label: 'Choferes', id: 'choferes' },
     { icon: HiOutlineUserCircle, label: 'Personal', id: 'personal' },
