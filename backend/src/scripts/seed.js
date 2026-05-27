@@ -417,7 +417,7 @@ async function seed() {
           concepto: 'Multa',
           monto: inc.monto_multa,
           fecha_hora: date.toISOString(),
-          notes: `Pago de multa por incidente (${inc.tipo}): ${inc.descripcion}`
+          notas: `Pago de multa por incidente (${inc.tipo}): ${inc.descripcion}`
         };
       });
 
