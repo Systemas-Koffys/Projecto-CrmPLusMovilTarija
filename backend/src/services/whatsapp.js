@@ -3,6 +3,18 @@ const qrcode = require('qrcode');
 const supabase = require('../config/supabase');
 const { processChatbotMessage } = require('./chatbot');
 
+// Dynamic state for enabling/disabling chatbot replies on incoming messages
+let chatbotEnabledState = process.env.CHATBOT_ENABLED === 'true';
+
+function getChatbotStatus() {
+  return chatbotEnabledState;
+}
+
+function setChatbotStatus(enabled) {
+  chatbotEnabledState = !!enabled;
+  return chatbotEnabledState;
+}
+
 // Store the client instances and their states
 const clients = {
   linea1: {
@@ -127,10 +139,9 @@ async function initWhatsApp() {
       clients[key].qr = null;
     });
 
-    // Incoming Messages
     client.on('message', async (message) => {
       try {
-        if (process.env.CHATBOT_ENABLED === 'true') {
+        if (chatbotEnabledState) {
           await processChatbotMessage(key, client, message);
         } else {
           await handleIncomingMessage(key, message);
@@ -249,5 +260,7 @@ async function sendMessage(lineaKey, to, message) {
 module.exports = {
   initWhatsApp,
   clients,
-  sendMessage
+  sendMessage,
+  getChatbotStatus,
+  setChatbotStatus
 };

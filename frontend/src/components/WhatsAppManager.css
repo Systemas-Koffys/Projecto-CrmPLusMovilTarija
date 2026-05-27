@@ -273,3 +273,96 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Chatbot Switch Toggle Header Styles */
+.whatsapp-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.chatbot-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.chatbot-toggle-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.chatbot-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.toggle-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transition: all 0.25s ease;
+}
+
+/* Active style (Green neon) */
+.chatbot-toggle-btn--active {
+  background: rgba(37, 211, 102, 0.08);
+  border-color: rgba(37, 211, 102, 0.25);
+  color: #25D366;
+  box-shadow: 0 0 10px rgba(37, 211, 102, 0.1);
+}
+
+.chatbot-toggle-btn--active .toggle-indicator-dot {
+  background: #25D366;
+  box-shadow: 0 0 6px #25D366;
+}
+
+.chatbot-toggle-btn--active:hover {
+  background: rgba(37, 211, 102, 0.15);
+  box-shadow: 0 0 15px rgba(37, 211, 102, 0.2);
+}
+
+/* Inactive style (Gray neon/dark) */
+.chatbot-toggle-btn--inactive {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.chatbot-toggle-btn--inactive .toggle-indicator-dot {
+  background: var(--text-muted);
+}
+
+.chatbot-toggle-btn--inactive:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 640px) {
+  .whatsapp-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .whatsapp-header__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

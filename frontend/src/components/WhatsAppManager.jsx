@@ -9,6 +9,7 @@ export default function WhatsAppManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [chatbotEnabled, setChatbotEnabled] = useState(true);
 
   const fetchStatus = async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setIsRefreshing(true);
@@ -25,8 +26,28 @@ export default function WhatsAppManager() {
     }
   };
 
+  const fetchChatbotStatus = async () => {
+    try {
+      const data = await api.get('/api/whatsapp/chatbot/status');
+      setChatbotEnabled(data.enabled);
+    } catch (err) {
+      console.error('Error fetching chatbot status:', err);
+    }
+  };
+
+  const handleChatbotToggle = async () => {
+    try {
+      const data = await api.post('/api/whatsapp/chatbot/toggle', { enabled: !chatbotEnabled });
+      setChatbotEnabled(data.enabled);
+    } catch (err) {
+      console.error('Error toggling chatbot status:', err);
+      alert('No se pudo cambiar el estado del chatbot. Intente de nuevo.');
+    }
+  };
+
   useEffect(() => {
     fetchStatus();
+    fetchChatbotStatus();
     // Auto refresh status every 5 seconds to show QR scanning in real-time
     const interval = setInterval(() => fetchStatus(false), 5000);
     return () => clearInterval(interval);
@@ -51,15 +72,31 @@ export default function WhatsAppManager() {
             <p className="subtitle">Gateway de comunicación activa (2 líneas)</p>
           </div>
         </div>
-        <button 
-          className={`btn btn--secondary ${isRefreshing ? 'refreshing' : ''}`} 
-          onClick={() => fetchStatus(true)}
-          disabled={isRefreshing}
-          title="Actualizar estado"
-        >
-          <FiRefreshCw style={{ marginRight: '8px' }} />
-          Sincronizar
-        </button>
+
+        <div className="whatsapp-header__actions">
+          {/* Dynamic Chatbot Toggle Switch */}
+          <div className="chatbot-toggle-wrapper glass-card">
+            <span className="chatbot-toggle-label">Chatbot:</span>
+            <button 
+              className={`chatbot-toggle-btn ${chatbotEnabled ? 'chatbot-toggle-btn--active' : 'chatbot-toggle-btn--inactive'}`}
+              onClick={handleChatbotToggle}
+              title={chatbotEnabled ? 'Desactivar respuestas automáticas' : 'Activar respuestas automáticas'}
+            >
+              <span className="toggle-indicator-dot"></span>
+              <span>{chatbotEnabled ? 'ACTIVO' : 'APAGADO'}</span>
+            </button>
+          </div>
+
+          <button 
+            className={`btn btn--secondary ${isRefreshing ? 'refreshing' : ''}`} 
+            onClick={() => fetchStatus(true)}
+            disabled={isRefreshing}
+            title="Actualizar estado"
+          >
+            <FiRefreshCw style={{ marginRight: '8px' }} />
+            Sincronizar
+          </button>
+        </div>
       </div>
 
       {error && (

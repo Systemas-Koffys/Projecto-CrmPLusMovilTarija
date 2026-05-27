@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('../middleware/verifyToken');
-const { clients, sendMessage } = require('../services/whatsapp');
+const { clients, sendMessage, getChatbotStatus, setChatbotStatus } = require('../services/whatsapp');
 
 /**
  * GET /api/whatsapp/status
@@ -21,6 +21,27 @@ router.get('/status', verifyToken, (req, res) => {
   });
 
   res.json(statusData);
+});
+
+/**
+ * GET /api/whatsapp/chatbot/status
+ * Get current chatbot enabled state
+ */
+router.get('/chatbot/status', verifyToken, (req, res) => {
+  res.json({ enabled: getChatbotStatus() });
+});
+
+/**
+ * POST /api/whatsapp/chatbot/toggle
+ * Enable or disable chatbot automatic responses
+ */
+router.post('/chatbot/toggle', verifyToken, (req, res) => {
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'Parámetro "enabled" requerido y debe ser booleano' });
+  }
+  const current = setChatbotStatus(enabled);
+  res.json({ enabled: current });
 });
 
 /**
